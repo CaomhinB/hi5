@@ -6,6 +6,8 @@ Tag: **[Demo]** means it matters for the partner demo. **[Later]** means park it
 
 ---
 
+Testing Git knowledge 
+
 ## 1. Vision
 
 **Why would someone use Hi5 instead of LinkedIn?** [Demo]
