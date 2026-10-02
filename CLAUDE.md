@@ -104,6 +104,7 @@ Taken from the mockups and the logo.
 - This is the collaborative project where each member is assigned to a separate feature and will be developing it in separate branch and then merging to the main branch, therefore please while generating new files and code make it easy to merge versions into main branch later. 
 - The backend should be handled withing Next.js as long as it's possible. If some backend feature will require a dedicated backend service please inform me by clearly stating the problem and options to me before proceeding.
 - Refer to global.css for the main design features but generate page/component specific css files when needed. 
+- Please analyse each prompt and if it seems to lack some crucial information please ask me for more details before proceeding.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
