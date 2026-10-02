@@ -1,0 +1,103 @@
+/* Shared /home shell. Feature pages own the styles inside the content area. */
+.shell {
+  --home-header-height: 76px;
+  --home-nav-height: 80px;
+  --home-nav-offset: 12px;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--foreground);
+}
+
+.shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 9% 14%, color-mix(in srgb, var(--lilac) 30%, transparent), transparent 52%),
+    radial-gradient(ellipse at 85% 28%, color-mix(in srgb, var(--cyan) 13%, transparent), transparent 48%),
+    radial-gradient(ellipse at 62% 76%, color-mix(in srgb, var(--violet) 13%, transparent), transparent 54%),
+    radial-gradient(ellipse at 12% 92%, rgba(255, 255, 255, 0.85), transparent 46%),
+    linear-gradient(145deg, #edf2ff 0%, #deebff 46%, #ecebff 77%, #e8f3ff 100%);
+}
+
+.header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.headerInner {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--page-width);
+  margin-inline: auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px))
+    max(20px, env(safe-area-inset-right, 0px)) 16px
+    max(20px, env(safe-area-inset-left, 0px));
+}
+
+.headerInner > * {
+  pointer-events: auto;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  max-width: var(--page-width);
+  margin-inline: auto;
+  padding: calc(var(--home-header-height) + env(safe-area-inset-top, 0px))
+    max(20px, env(safe-area-inset-right, 0px))
+    calc(var(--home-nav-height) + var(--home-nav-offset) + env(safe-area-inset-bottom, 0px) + 24px)
+    max(20px, env(safe-area-inset-left, 0px));
+  overflow-wrap: anywhere;
+}
+
+.skipLink {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  z-index: 30;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--navy);
+  color: white;
+  font-weight: 700;
+  transform: translateY(calc(-100% - 40px));
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .shell {
+    --home-header-height: 96px;
+    --home-nav-offset: 24px;
+  }
+
+  .headerInner {
+    padding-block: calc(24px + env(safe-area-inset-top, 0px)) 24px;
+    padding-inline: max(32px, env(safe-area-inset-left, 0px))
+      max(32px, env(safe-area-inset-right, 0px));
+  }
+
+  .content {
+    padding-inline: max(32px, env(safe-area-inset-left, 0px))
+      max(32px, env(safe-area-inset-right, 0px));
+  }
+}

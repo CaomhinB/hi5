@@ -101,7 +101,11 @@ Taken from the mockups and the logo.
 - When something breaks: say what broke, what it means, and what you will do next. No error logs unless asked.
 - No em dashes. Ever.
 - Follow the chat style in the parent `CLAUDE.md` (answer first, then bullets, then what Kevin needs to do).
+
+
+## Rules for All Agents
 - This is the collaborative project where each member is assigned to a separate feature and will be developing it in separate branch and then merging to the main branch, therefore please while generating new files and code make it easy to merge versions into main branch later. 
+- Utilise existing components when necessary. For example, If a component seems like a part of a main layout check in app/components/layout folder for their existance before generating a new one. 
 - The backend should be handled withing Next.js as long as it's possible. If some backend feature will require a dedicated backend service please inform me by clearly stating the problem and options to me before proceeding.
 - Refer to global.css for the main design features but generate page/component specific css files when needed. 
 - Please analyse each prompt and if it seems to lack some crucial information please ask me for more details before proceeding.

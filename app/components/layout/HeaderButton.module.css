@@ -1,0 +1,65 @@
+/* Shared by the notification and profile controls. */
+.button {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  color: var(--navy);
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease-out),
+    background 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.profileImage {
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+@media (hover: hover) {
+  .button:hover {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--glass-shadow-hover);
+    transform: translateY(-2px);
+  }
+}
+
+@media (min-width: 768px) {
+  .button {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button:hover,
+  .button:active {
+    transform: none;
+  }
+}

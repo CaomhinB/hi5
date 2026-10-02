@@ -1,0 +1,96 @@
+.navbar {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--home-nav-offset, 12px) + env(safe-area-inset-bottom, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  z-index: 20;
+  max-width: 560px;
+  min-height: var(--home-nav-height, 80px);
+  margin-inline: auto;
+  padding: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  min-width: 0;
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 62px;
+  padding: 7px 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: clamp(0.6875rem, 2.7vw, 0.8125rem);
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  transition:
+    background 0.2s var(--ease-out),
+    color 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
+}
+
+.link svg {
+  flex-shrink: 0;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.active {
+  border-color: var(--glass-border);
+  background: var(--brand-gradient-soft);
+  color: var(--blue);
+  box-shadow: 0 4px 12px rgba(42, 91, 234, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.link:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .link:hover {
+    background: var(--glass-bg-strong);
+    color: var(--blue);
+    transform: translateY(-2px);
+  }
+
+  .active:hover {
+    background: var(--brand-gradient-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+
+  .link:hover,
+  .link:active {
+    transform: none;
+  }
+}
