@@ -1,0 +1,577 @@
+/* Discovery owns its content. Background and fixed controls belong to /home. */
+.page {
+  width: 100%;
+  max-width: 400px;
+  margin: calc(20px - var(--home-header-height, 76px)) auto 0;
+}
+
+.header {
+  min-height: 56px;
+  padding-right: 104px;
+}
+
+.header h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.header p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.viewSelectors {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.viewButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 4px 14px rgba(60, 72, 170, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.viewButton {
+  border: 1.5px solid transparent;
+  background: linear-gradient(#edf1fc, #eaf0fe) padding-box,
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.5)) border-box;
+}
+
+.selectedView {
+  background: linear-gradient(135deg, #f4fcff, #f3edff) padding-box,
+    linear-gradient(135deg, var(--cyan), var(--blue), var(--lilac)) border-box;
+  box-shadow: 0 4px 14px rgba(80, 90, 240, 0.12);
+  color: var(--blue);
+}
+
+/* The clip catches departing cards without clipping the visible stack edges. */
+.deckViewport {
+  isolation: isolate;
+  overflow: clip;
+  margin: 2px -16px -2px;
+  padding: 12px 16px;
+}
+
+.stack {
+  position: relative;
+  display: grid;
+  grid-template-areas: "card";
+  padding: 6px 4px 8px;
+}
+
+.cardLayer {
+  grid-area: card;
+  min-width: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform-origin: 50% 70%;
+  transform: translate3d(10px, 10px, 0) rotate(3deg) scale(0.97);
+  transition: transform 260ms var(--ease-out), opacity 260ms var(--ease-out);
+}
+
+.cardLayer[data-position="0"] {
+  z-index: 3;
+  visibility: visible;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  transform: translate3d(var(--drag-x, 0px), 0, 0) rotate(var(--drag-rotation, 0deg));
+}
+
+.cardLayer[data-position="1"] {
+  z-index: 2;
+  visibility: visible;
+  transform: translate3d(-10px, 6px, 0) rotate(-3deg) scale(0.985);
+}
+
+.cardLayer[data-position="2"] {
+  z-index: 1;
+  visibility: visible;
+  transform: translate3d(10px, 10px, 0) rotate(3deg) scale(0.97);
+}
+
+/* Move the rear cards forward while the outgoing card leaves, in one motion. */
+.stack[data-dismissing="true"] .cardLayer {
+  transition-duration: 1000ms;
+}
+
+.stack[data-dismissing="true"] .cardLayer[data-position="1"] {
+  transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+}
+
+.stack[data-dismissing="true"] .cardLayer[data-position="2"] {
+  transform: translate3d(-10px, 6px, 0) rotate(-3deg) scale(0.985);
+}
+
+.cardLayer[data-dragging="true"] {
+  cursor: grabbing;
+  transition: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass-bg-strong);
+  box-shadow: 0 8px 24px rgba(60, 72, 170, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.photo {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 1.6;
+  max-height: 260px;
+  overflow: hidden;
+  border-radius: 23px 23px 18px 18px;
+  background: var(--brand-gradient-soft);
+}
+
+.headshot {
+  object-fit: cover;
+  object-position: center 38%;
+}
+
+.portraitPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 80% 0%, #e8fbff, transparent 70%),
+    linear-gradient(140deg, #7194e5, #c1d1fc 65%, #8db9dc);
+}
+
+.portraitPlaceholder[data-tone="purple"] {
+  background: radial-gradient(ellipse at 85% 5%, #ffeff8, transparent 70%),
+    linear-gradient(140deg, #9d89cf, #dcc9f7 65%, #9da6e6);
+}
+
+.portraitPlaceholder[data-tone="teal"] {
+  background: radial-gradient(ellipse at 85% 5%, #edfffa, transparent 70%),
+    linear-gradient(140deg, #69a9b4, #bee7e7 65%, #8ea6d1);
+}
+
+.portraitInitials {
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 12px 40px rgba(38, 52, 117, 0.1);
+  color: var(--navy);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.portraitHalo {
+  position: absolute;
+  bottom: -100px;
+  width: 280px;
+  height: 280px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  box-shadow: 0 0 0 34px rgba(255, 255, 255, 0.08), 0 0 0 68px rgba(255, 255, 255, 0.05);
+}
+
+.profileInfo {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-top: -40px;
+  padding: 12px 12px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 19px 19px 22px 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(238, 242, 255, 0.8));
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 3px 12px rgba(60, 72, 170, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nameRow h2 {
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.verified {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--verified);
+}
+
+.professionalTitle {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.details li {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.details svg {
+  flex-shrink: 0;
+}
+
+.biography {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 9px 0 11px;
+  padding: 0;
+  list-style: none;
+}
+
+.skill {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(42, 91, 234, 0.12);
+  color: #1f46b8;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.skill[data-tone="cyan"] { background: rgba(34, 211, 238, 0.17); color: #116e8b; }
+.skill[data-tone="purple"] { background: rgba(123, 92, 240, 0.13); color: #5b3fc4; }
+.skill[data-tone="pink"] { background: rgba(236, 72, 153, 0.12); color: #b0287a; }
+
+.whyProfile {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 14px;
+  align-items: start;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.whyProfile h3 {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.whyProfile p {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.sparkle { color: var(--violet); }
+.chevron { margin-top: 2px; color: var(--muted); }
+
+.swipeActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  justify-items: center;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.actionWithLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding-top: 5px;
+}
+
+.actionCircle,
+.hiButton {
+  --feedback: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  color: var(--navy);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.18s var(--ease-out), background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+
+.actionCircle {
+  width: 56px;
+  height: 56px;
+}
+
+.actionLabel {
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.passButton {
+  transform: scale(calc(1 + var(--feedback) * 0.1));
+  background: color-mix(in srgb, #f6a4ba calc(var(--feedback) * 65%), #f5f8ff);
+  color: color-mix(in srgb, #be315a calc(var(--feedback) * 100%), var(--navy));
+  box-shadow: 0 8px 26px rgba(214, 84, 128, calc(0.08 + var(--feedback) * 0.3));
+}
+
+.hiButton {
+  flex-direction: column;
+  gap: 2px;
+  width: 80px;
+  height: 80px;
+  border: 4px solid transparent;
+  background: linear-gradient(140deg, #f3fbff, #eeedff) padding-box,
+    linear-gradient(125deg, var(--cyan), var(--blue), var(--violet), var(--lilac)) border-box;
+  box-shadow: 0 5px calc(18px + var(--feedback) * 20px) rgba(42, 91, 234, calc(0.18 + var(--feedback) * 0.3)),
+    0 0 calc(12px + var(--feedback) * 18px) rgba(123, 92, 240, calc(0.14 + var(--feedback) * 0.35));
+  transform: scale(calc(1 + var(--feedback) * 0.1));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.wave { font-size: 27px; line-height: 1.15; }
+
+.secondaryActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.secondaryButton { color: var(--navy); }
+
+.saveButton[aria-pressed="true"] {
+  background: var(--brand-gradient-soft);
+  color: var(--blue);
+  box-shadow: 0 4px 16px rgba(80, 90, 240, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.saveButton:disabled { cursor: default; }
+.saveBookmark { flex-shrink: 0; fill: transparent; transform-origin: center; transition: fill 220ms ease, color 220ms ease; }
+.saveButton[aria-pressed="true"] .saveBookmark { fill: currentColor; }
+.bookmarkPop { animation: bookmark-pop 420ms var(--ease-out); }
+.bookmarkClear { animation: bookmark-clear 320ms var(--ease-out); }
+
+/* Feedback floats over the viewport without moving the deck or blocking taps. */
+.saveFeedbackLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.saveFeedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 144px;
+  min-height: 128px;
+  padding: 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: rgba(246, 249, 255, 0.68);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 12px 40px rgba(46, 62, 130, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  animation: save-feedback var(--save-feedback-duration) ease both;
+}
+.saveFeedback[data-saved="true"] { color: var(--blue); }
+.saveFeedbackIcon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  background: rgba(221, 229, 247, 0.6);
+}
+.saveFeedback[data-saved="true"] .saveFeedbackIcon { background: var(--brand-gradient-soft); }
+.saveFeedback[data-saved="true"] .saveFeedbackIcon svg { fill: currentColor; animation: bookmark-pop 500ms var(--ease-out); }
+.saveFeedback[data-saved="false"] .saveFeedbackIcon svg { animation: bookmark-clear 400ms var(--ease-out); }
+
+@keyframes bookmark-pop {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  40% { transform: scale(1.24) rotate(-8deg); }
+  70% { transform: scale(0.98) rotate(2deg); }
+}
+@keyframes bookmark-clear {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(0.8); }
+}
+@keyframes save-feedback {
+  0% { opacity: 0; transform: translateY(12px) scale(0.84); }
+  12% { opacity: 1; transform: translateY(0) scale(1.04); }
+  22%, 78% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.96); }
+}
+
+.viewButton:active,
+.secondaryButton:active,
+.actionCircle:not(:disabled):active,
+.hiButton:not(:disabled):active { transform: scale(0.96); }
+
+.actionCircle:disabled,
+.hiButton:disabled { cursor: default; }
+
+.actionCircle:focus-visible,
+.hiButton:focus-visible { border-radius: 50%; }
+
+.exitLeft { animation: swipe-left 1000ms var(--ease-out) forwards; }
+.exitRight { animation: swipe-right 1000ms var(--ease-out) forwards; }
+
+@keyframes swipe-left {
+  from { opacity: 1; transform: translate3d(var(--drag-x, 0px), 0, 0) rotate(var(--drag-rotation, 0deg)); }
+  to { opacity: 0; transform: translate3d(-125%, 10px, 0) rotate(-16deg); }
+}
+
+@keyframes swipe-right {
+  from { opacity: 1; transform: translate3d(var(--drag-x, 0px), 0, 0) rotate(var(--drag-rotation, 0deg)); }
+  to { opacity: 0; transform: translate3d(125%, 10px, 0) rotate(16deg); }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 40px 24px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--brand-gradient-soft);
+  color: var(--violet);
+}
+
+.emptyState h2 { font-size: 24px; line-height: 1.25; }
+.emptyState p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .viewButton:hover,
+  .secondaryButton:hover { color: var(--blue); box-shadow: var(--glass-shadow); }
+  .actionCircle:not(:disabled):hover { transform: scale(calc(1.04 + var(--feedback) * 0.1)); }
+  .hiButton:not(:disabled):hover { transform: scale(calc(1.04 + var(--feedback) * 0.1)); }
+}
+
+@media (min-width: 768px) {
+  .page { margin-top: 0; }
+  .header { padding-right: 0; }
+  .header h1 { font-size: 34px; }
+  .header p { font-size: 14px; }
+  .viewSelectors { margin-top: 20px; }
+  .viewButton, .secondaryButton { font-size: 13px; }
+  .deckViewport { margin-top: 10px; }
+  .photo { aspect-ratio: 1.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saveBookmark { transition: none; }
+  .bookmarkPop, .bookmarkClear, .saveFeedbackIcon svg { animation: none !important; }
+  .saveFeedback { animation: none; }
+  .cardLayer,
+  .viewButton,
+  .secondaryButton,
+  .actionCircle,
+  .hiButton { transition: none; }
+  .exitLeft, .exitRight { animation: none; }
+  .passButton, .hiButton { transform: none; }
+  .viewButton:active,
+  .secondaryButton:active,
+  .actionCircle:not(:disabled):hover,
+  .actionCircle:not(:disabled):active,
+  .hiButton:not(:disabled):hover,
+  .hiButton:not(:disabled):active { transform: none; }
+}
