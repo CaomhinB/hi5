@@ -106,7 +106,7 @@ export default function Home() {
               </p>
             </Reveal>
             <Reveal delay={240} className="hero-ctas">
-              <a href="#cta" className="btn btn-primary btn-lg">
+              <a href="/signup" className="btn btn-primary btn-lg">
                 Get started
               </a>
               <a href="#try" className="btn btn-glass btn-lg">
@@ -444,7 +444,7 @@ export default function Home() {
             </h2>
             <p className="lead">Meet 5 people worth saying Hi to.</p>
             <div className="cta-buttons">
-              <button className="btn btn-primary btn-lg">Get started</button>
+              <a href="/signup" className="btn btn-primary btn-lg">Get started</a>
               <a href="#try" className="btn btn-glass btn-lg">
                 Try the demo again
               </a>

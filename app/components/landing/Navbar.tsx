@@ -59,8 +59,8 @@ export function Navbar() {
             <button className="btn btn-glass btn-sm" onClick={() => setLoginOpen(true)}>
               Log in
             </button>
-            <a href="#cta" className="btn btn-primary btn-sm nav-cta">
-              Get started
+            <a href="/signup" className="btn btn-primary btn-sm nav-cta">
+              Sign up
             </a>
             <button
               className="nav-burger"
@@ -83,8 +83,8 @@ export function Navbar() {
                 {l.label}
               </a>
             ))}
-            <a href="#cta" className="btn btn-primary" onClick={() => setMenuOpen(false)}>
-              Get started
+            <a href="/signup" className="btn btn-primary" onClick={() => setMenuOpen(false)}>
+              Sign up
             </a>
           </div>
         )}
@@ -113,6 +113,9 @@ function LoginModal({ onClose }: { onClose: () => void }) {
         <Logo height={40} />
         <h2 className="modal-title">Welcome back</h2>
         <p className="modal-sub">This is a demo. No real login yet.</p>
+        <p className="modal-sub">
+          New to Hi5? <a href="/signup" className="text-gradient">Create your account</a>
+        </p>
 
         {sent ? (
           <div className="modal-done">
