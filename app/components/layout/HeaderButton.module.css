@@ -38,6 +38,8 @@
   object-fit: cover;
 }
 
+.profileInitials { color: var(--blue); font-size: 14px; font-weight: 700; letter-spacing: -0.04em; }
+
 @media (hover: hover) {
   .button:hover {
     background: rgba(255, 255, 255, 0.9);

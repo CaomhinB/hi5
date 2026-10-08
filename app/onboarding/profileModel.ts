@@ -25,6 +25,8 @@ export interface ProfileRecord {
   linkedin_url: string | null;
   github_url: string | null;
   image_path: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface ProfileDraft {
@@ -46,6 +48,8 @@ export interface ProfileDraft {
 
 export interface ProfileIssue { field: keyof ProfileDraft | "image_path"; message: string; }
 export const PROFILE_STEPS = ["About you", "Your work", "Skills & interests", "Photo & links"] as const;
+export const PROFILE_SECTIONS = ["about", "work", "skills", "photo"] as const;
+export type ProfileSection = (typeof PROFILE_SECTIONS)[number];
 
 export function uniqueLabels(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -126,14 +130,18 @@ export function isProfileComplete(profile: ProfileRecord | null, photoExists: bo
   return !requiredProfileIssue(profile, photoExists);
 }
 
-export function profilePayload(draft: ProfileDraft, imagePath: string): Record<string, unknown> {
+/** Only include the requested section so unrelated saved fields stay untouched. */
+export function profileSectionPayload(draft: ProfileDraft, imagePath: string, section: ProfileSection): Record<string, unknown> {
   const optional = (value: string) => value.trim() || null;
   const url = (value: string) => value.trim() ? new URL(value.trim()).href : null;
-  return {
-    name: draft.name.trim(), age: draft.age ? Number(draft.age) : null,
-    organisation: optional(draft.organisation), location: draft.location.trim(), job_title: draft.job_title.trim(),
-    bio: draft.bio.trim(), experience: Number(draft.experience), industries: [...draft.industries],
-    skills: uniqueLabels(draft.skills), interests: uniqueLabels(draft.interests), current_projects: optional(draft.current_projects),
-    portfolio_url: url(draft.portfolio_url), linkedin_url: url(draft.linkedin_url), github_url: url(draft.github_url), image_path: imagePath,
-  };
+  switch (section) {
+    case "about": return { name: draft.name.trim(), age: draft.age ? Number(draft.age) : null, location: draft.location.trim(), bio: draft.bio.trim() };
+    case "work": return { organisation: optional(draft.organisation), job_title: draft.job_title.trim(), experience: Number(draft.experience), industries: [...draft.industries] };
+    case "skills": return { skills: uniqueLabels(draft.skills), interests: uniqueLabels(draft.interests), current_projects: optional(draft.current_projects) };
+    case "photo": return { portfolio_url: url(draft.portfolio_url), linkedin_url: url(draft.linkedin_url), github_url: url(draft.github_url), image_path: imagePath };
+  }
+}
+
+export function profilePayload(draft: ProfileDraft, imagePath: string): Record<string, unknown> {
+  return Object.assign({}, ...PROFILE_SECTIONS.map((section) => profileSectionPayload(draft, imagePath, section)));
 }

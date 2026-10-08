@@ -9,20 +9,29 @@ import { Logo } from "../components/landing/Logo";
 import { SearchableSelect } from "../home/filters/SearchableSelect";
 import {
   createProfileDraft, fieldStep, INDUSTRIES, INTEREST_OPTIONS, isProfileComplete,
-  PROFILE_STEPS, PROFESSIONS, requiredProfileIssue, SKILL_OPTIONS, validateProfileDraft,
+  PROFILE_SECTIONS, PROFILE_STEPS, PROFESSIONS, requiredProfileIssue, SKILL_OPTIONS, validateProfileDraft,
 } from "./profileModel";
-import type { ProfileDraft, ProfileIssue } from "./profileModel";
+import type { ProfileDraft, ProfileIssue, ProfileSection } from "./profileModel";
 import {
   loadOnboardingContext, OnboardingError, profilePhotoUrl, saveOnboardingProfile,
   uploadProfilePhoto, validatePhoto,
 } from "./onboardingApi";
 import type { OnboardingContext } from "./onboardingApi";
+import { saveProfileSection } from "../home/profile/profileApi";
 import styles from "./Onboarding.module.css";
 
 type TextField = Exclude<keyof ProfileDraft, "industries" | "skills" | "interests">;
 
-export function OnboardingFlow() {
+interface OnboardingFlowProps {
+  editSection?: ProfileSection;
+  initialContext?: OnboardingContext;
+  onSaved?: (context: OnboardingContext) => void;
+}
+
+export function OnboardingFlow({ editSection, initialContext, onSaved }: OnboardingFlowProps = {}) {
   const router = useRouter();
+  const isEditing = editSection !== undefined;
+  const Page = isEditing ? "section" : "main";
   const [context, setContext] = useState<OnboardingContext | null>(null);
   const [draft, setDraft] = useState<ProfileDraft | null>(null);
   const [phase, setPhase] = useState<"loading" | "form" | "error">("loading");
@@ -63,13 +72,13 @@ export function OnboardingFlow() {
       if (!active) return;
       setPhase("loading");
       setLoadError(null);
-      void loadOnboardingContext(controller.signal).then((loaded) => {
+      void (initialContext ? Promise.resolve(initialContext) : loadOnboardingContext(controller.signal)).then((loaded) => {
         if (!active) return;
-        if (isProfileComplete(loaded.profile, loaded.photoExists)) { router.replace("/home"); return; }
-        const initial = createProfileDraft(loaded.profile, loaded.metadata);
+        if (!editSection && isProfileComplete(loaded.profile, loaded.photoExists)) { router.replace("/home"); return; }
+        const initial = createProfileDraft(loaded.profile, editSection ? {} : loaded.metadata);
         const missing = validateProfileDraft(initial, loaded.photoExists) ?? requiredProfileIssue(loaded.profile, loaded.photoExists);
         const photoUrl = loaded.profile?.image_path && loaded.photoExists ? profilePhotoUrl(loaded.profile.image_path) : "";
-        setContext(loaded); setDraft(initial); setStep(missing ? Math.max(0, fieldStep(missing.field)) : 0);
+        setContext(loaded); setDraft(initial); setStep(editSection ? PROFILE_SECTIONS.indexOf(editSection) : missing ? Math.max(0, fieldStep(missing.field)) : 0);
         setSavedPhoto(photoUrl); setPreview(photoUrl); setPhase("form");
       }).catch((cause: unknown) => {
         if (!active || controller.signal.aborted) return;
@@ -78,7 +87,7 @@ export function OnboardingFlow() {
       });
     });
     return () => { active = false; controller.abort(); };
-  }, [reload, router]);
+  }, [reload, router, editSection, initialContext]);
 
   useEffect(() => {
     if (phase !== "form") return;
@@ -141,16 +150,16 @@ export function OnboardingFlow() {
     event.preventDefault();
     if (!context || !draft || saveLock.current) return;
     const hasPhoto = photo ? photoReady : context.photoExists;
-    const invalid = validateProfileDraft(draft, hasPhoto, step < 3 ? step : undefined);
+    const invalid = validateProfileDraft(draft, hasPhoto, isEditing || step < 3 ? step : undefined);
     if (invalid) { showIssue(invalid); return; }
     setIssue(null); setError("");
-    if (step < 3) { setStep(step + 1); return; }
+    if (!isEditing && step < 3) { setStep(step + 1); return; }
     saveLock.current = true; setSaving(true);
     const controller = new AbortController();
     saveController.current = controller;
     try {
       let imagePath = context.profile?.image_path ?? "";
-      if (photo) {
+      if (photo && (!isEditing || editSection === "photo")) {
         if (uploadCache.current?.file === photo) imagePath = uploadCache.current.path;
         else {
           setSaveStatus("Uploading your photo…");
@@ -160,9 +169,15 @@ export function OnboardingFlow() {
       }
       if (!mounted.current || controller.signal.aborted) return;
       setSaveStatus("Saving your profile…");
-      await saveOnboardingProfile(draft, imagePath, context.authUserId, controller.signal);
+      if (editSection) {
+        const saved = await saveProfileSection(editSection, draft, imagePath, context, controller.signal);
+        if (!mounted.current || controller.signal.aborted) return;
+        onSaved?.(saved);
+      } else await saveOnboardingProfile(draft, imagePath, context.authUserId, controller.signal);
       if (!mounted.current) return;
-      router.replace("/home"); router.refresh();
+      if (isEditing) router.push("/home/profile");
+      else router.replace("/home");
+      router.refresh();
     } catch (cause) {
       if (!mounted.current || controller.signal.aborted) return;
       saveLock.current = false; setSaving(false); setSaveStatus("");
@@ -203,19 +218,19 @@ export function OnboardingFlow() {
   }
 
   return (
-    <main ref={pageRef} className={styles.page}>
-      <Link href="/" className={styles.brand} aria-label="Hi5 home" inert={saving}><Logo height={40} /></Link>
+    <Page ref={pageRef} className={`${styles.page} ${isEditing ? styles.editPage : ""}`}>
+      {!isEditing && <Link href="/" className={styles.brand} aria-label="Hi5 home" inert={saving}><Logo height={40} /></Link>}
       {phase === "form" && draft && context ? (
         <section className={`glass glass-strong ${styles.card}`} aria-labelledby="onboarding-title">
           <header className={styles.header}>
-            <ol className={styles.progress} aria-label="Profile setup progress">
+            {isEditing ? <button type="button" className={styles.close} aria-label="Close profile editor" disabled={saving} onClick={() => router.push("/home/profile")}>×</button> : <ol className={styles.progress} aria-label="Profile setup progress">
               {PROFILE_STEPS.map((title, index) => <li key={title} className={index <= step ? styles.active : ""} aria-current={index === step ? "step" : undefined}>
                 <span aria-hidden="true">{index < step ? "✓" : index + 1}</span><small>{title}</small>
               </li>)}
-            </ol>
-            <p className={styles.kicker}>Complete your Hi5 · Step {step + 1} of 4</p>
-            <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>{["Let’s get to know you", "Tell us about your work", "What do you bring to the table?", "Put a face to your Hi5"][step]}</h1>
-            <p className={styles.intro}>We’ve filled in what we already know. Add the missing details to help people get to know you.</p>
+            </ol>}
+            <p className={styles.kicker}>{isEditing ? "My profile" : `Complete your Hi5 · Step ${step + 1} of 4`}</p>
+            <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>{isEditing ? `Edit ${PROFILE_STEPS[step].toLowerCase()}` : ["Let’s get to know you", "Tell us about your work", "What do you bring to the table?", "Put a face to your Hi5"][step]}</h1>
+            <p className={styles.intro}>{isEditing ? "Update your details, then save your changes." : "We’ve filled in what we already know. Add the missing details to help people get to know you."}</p>
           </header>
           <form className={styles.form} noValidate onSubmit={(event) => void submit(event)} aria-busy={saving}>
             <fieldset ref={fieldsRef} className={styles.fields} data-filter-scroll disabled={saving}>
@@ -279,8 +294,8 @@ export function OnboardingFlow() {
               {issue && <p id="onboarding-validation-error" className={styles.error} role="alert">{issue.message}</p>}
               {error && <p className={styles.error} role="alert">{error}</p>}
               <div className={styles.actionButtons}>
-                <button type="button" className={`btn btn-glass ${styles.back}`} disabled={step === 0 || saving} onClick={() => { setIssue(null); setError(""); setStep(step - 1); }}>Back</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? saveStatus || "Saving…" : step === 3 ? "Finish my profile" : "Continue"}</button>
+                <button type="button" className={`btn btn-glass ${styles.back}`} disabled={saving || (!isEditing && step === 0)} onClick={() => { if (isEditing) router.push("/home/profile"); else { setIssue(null); setError(""); setStep(step - 1); } }}>{isEditing ? "Cancel" : "Back"}</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? saveStatus || "Saving…" : isEditing ? "Save changes" : step === 3 ? "Finish my profile" : "Continue"}</button>
               </div>
               <span className={styles.srOnly} role="status" aria-live="polite">{saveStatus}</span>
             </footer>
@@ -288,7 +303,8 @@ export function OnboardingFlow() {
         </section>
       ) : (
         <section className={`glass glass-strong ${styles.statusCard}`} aria-busy={phase === "loading"}>
-          <h1>{phase === "loading" ? "Checking your profile…" : loadError?.signedOut ? "Log in to complete your Hi5" : "Your profile isn’t ready yet"}</h1>
+          <h1>{phase === "loading" ? "Checking your profile…" : loadError?.signedOut ? "Log in to complete your Hi5"
+            : loadError?.code === "PGRST202" || loadError?.code === "42501" ? "Profile setup is unavailable" : "Your profile isn’t ready yet"}</h1>
           <p role={phase === "error" ? "alert" : "status"}>{phase === "loading" ? "Getting your details ready." : loadError?.message}</p>
           {phase === "error" && <div className={styles.statusActions}>
             {!loadError?.signedOut && <button type="button" className="btn btn-primary" onClick={() => setReload((value) => value + 1)}>Try again</button>}
@@ -296,8 +312,8 @@ export function OnboardingFlow() {
           </div>}
         </section>
       )}
-      <p className={styles.pageFooter}>Meet 5 people worth saying Hi to.</p>
+      {!isEditing && <p className={styles.pageFooter}>Meet 5 people worth saying Hi to.</p>}
       <div id="onboarding-popovers" className={styles.portalRoot} />
-    </main>
+    </Page>
   );
 }

@@ -3,6 +3,7 @@
 import { getSupabaseBrowserClient } from "../lib/supabase/browser";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, PROFILE_IMAGE_BUCKET, profilePayload } from "./profileModel";
 import type { ProfileDraft, ProfileRecord } from "./profileModel";
+import { notifyProfileChanged } from "../lib/supabase/profileEvents";
 
 export interface OnboardingContext {
   authUserId: string;
@@ -13,14 +14,15 @@ export interface OnboardingContext {
 }
 
 export class OnboardingError extends Error {
-  constructor(message: string, public readonly signedOut = false) { super(message); }
+  constructor(message: string, public readonly signedOut = false, public readonly code?: string) { super(message); }
 }
 
 function apiError(code: string, message: string): OnboardingError {
   if (/onboarding_auth_required|JWT/i.test(message)) return new OnboardingError("Please log in to finish setting up your profile.", true);
   if (/onboarding_account_changed/i.test(message)) return new OnboardingError("Your signed-in account changed. Please reload this page.");
   if (/onboarding_user_missing/i.test(message)) return new OnboardingError("Your account record isn’t ready yet. Please try again in a moment.");
-  if (code === "PGRST202" || code === "42501") return new OnboardingError("Profile setup isn’t available yet. Please try again later.");
+  if (code === "PGRST202") return new OnboardingError("Profile setup hasn’t been configured yet. Please try again later.", false, code);
+  if (code === "42501") return new OnboardingError("Profile setup couldn’t access your account. Please try again later.", false, code);
   if (message.startsWith("onboarding_invalid:")) return new OnboardingError(message.slice("onboarding_invalid:".length).trim());
   return new OnboardingError("We couldn’t save or load your profile. Please check your connection and try again.");
 }
@@ -73,4 +75,5 @@ export async function saveOnboardingProfile(draft: ProfileDraft, imagePath: stri
   signal.throwIfAborted();
   if (error) throw apiError(error.code, error.message);
   if (data?.success !== true) throw new OnboardingError("We couldn’t confirm that your profile was saved. Please try again.");
+  notifyProfileChanged(authUserId);
 }

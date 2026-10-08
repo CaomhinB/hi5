@@ -56,6 +56,12 @@
 .page[data-compact="true"] .card { height: calc(var(--onboarding-viewport-height) - 32px); min-height: 240px; }
 .page[data-compact="true"] .header { padding-block: 14px 12px; }
 .page[data-compact="true"] .header h1 { font-size: 20px; }
+.editPage { min-height: 0; padding: 0; gap: 0; }
+.editPage .card { max-width: 600px; height: min(760px, calc(var(--onboarding-viewport-height) - var(--home-header-height, 76px) - var(--home-nav-height, 80px) - var(--home-nav-offset, 12px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)); min-height: 320px; }
+.editPage .header { position: relative; padding-right: 68px; }
+.close { position: absolute; top: 18px; right: 18px; display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--glass-border); border-radius: 50%; background: rgba(255, 255, 255, 0.6); color: var(--muted); font-size: 24px; cursor: pointer; }
+.editPage[data-compact="true"] { padding: 0; }
+.editPage[data-compact="true"] .card { height: 320px; min-height: 320px; }
 @media (max-width: 480px) {
   .header { padding: 20px 18px 14px; }
   .fields { padding-inline: 18px; }

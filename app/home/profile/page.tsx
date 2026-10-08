@@ -1,10 +1,8 @@
-import { PlaceholderPage } from "../../components/layout/PlaceholderPage";
+import type { Metadata } from "next";
+import { ProfileExperience } from "./ProfileExperience";
+
+export const metadata: Metadata = { title: "My profile | Hi5" };
 
 export default function ProfilePage() {
-  return (
-    <PlaceholderPage
-      title="Your profile"
-      description="Your professional Hi5 Card will appear here."
-    />
-  );
+  return <ProfileExperience />;
 }

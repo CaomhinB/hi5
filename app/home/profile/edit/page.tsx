@@ -1,10 +1,13 @@
-import { PlaceholderPage } from "../../../components/layout/PlaceholderPage";
+import type { Metadata } from "next";
+import { PROFILE_SECTIONS } from "../../../onboarding/profileModel";
+import { ProfileEditExperience } from "./ProfileEditExperience";
 
-export default function EditProfilePage() {
-  return (
-    <PlaceholderPage
-      title="Edit profile"
-      description="Your profile editor will be available here."
-    />
-  );
+export const metadata: Metadata = { title: "Edit my profile | Hi5" };
+
+export default async function EditProfilePage({ searchParams }: {
+  searchParams: Promise<{ section?: string | string[] }>;
+}) {
+  const requested = (await searchParams).section;
+  const section = PROFILE_SECTIONS.find((option) => option === requested) ?? "about";
+  return <ProfileEditExperience section={section} />;
 }
