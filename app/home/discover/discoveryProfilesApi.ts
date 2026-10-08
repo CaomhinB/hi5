@@ -1,0 +1,69 @@
+"use client";
+
+import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { mapDiscoveryProfile } from "./discoveryProfile";
+import type { DiscoveryProfile, UserProfileRow } from "./discoveryProfile";
+import type { DiscoveryFilters } from "./discoveryFilters";
+
+const PROFILE_COLUMNS = "id,name,organisation,location,job_title,bio,skills,experience,industries,interests,current_projects,image_path,created_at";
+const IMAGE_BUCKET = "profile-images";
+
+export interface DiscoveryBatchRequest {
+  offset: number;
+  limit: number;
+  signal: AbortSignal;
+}
+
+export interface DiscoveryBatch {
+  profiles: DiscoveryProfile[];
+  nextOffset: number;
+  hasMore: boolean;
+}
+
+export type DiscoveryBatchLoader = (request: DiscoveryBatchRequest) => Promise<DiscoveryBatch>;
+
+/** Keep query predicates and row mapping here, independent of the queue and UI. */
+export async function fetchDiscoveryProfilesBatch(
+  { offset, limit, signal }: DiscoveryBatchRequest,
+  filters?: DiscoveryFilters,
+): Promise<DiscoveryBatch> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Discovery profiles aren’t configured yet. Please try again later.");
+  }
+  const client = getSupabaseBrowserClient();
+  let query = client.from("user_profiles").select(PROFILE_COLUMNS);
+  // All predicates run inside Supabase, before the stable order and 10-row range.
+  if (filters?.industries.length) query = query.overlaps("industries", filters.industries);
+  if (filters?.professionWords.length) query = query.overlaps("discovery_profession_words", filters.professionWords);
+  if (filters?.skillWords.length) query = query.overlaps("discovery_skill_words", filters.skillWords);
+  if (filters?.experienceMin != null) query = query.gte("experience", filters.experienceMin);
+  if (filters?.experienceMax != null) query = query.lte("experience", filters.experienceMax);
+
+  const { data, error } = await query
+    .order("created_at", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(offset, offset + limit - 1)
+    .abortSignal(signal)
+    .overrideTypes<UserProfileRow[], { merge: false }>();
+
+  if (error) {
+    // Some PostgREST configurations return 416 beyond the final full page.
+    if (error.code === "PGRST103" && offset > 0) {
+      return { profiles: [], nextOffset: offset, hasMore: false };
+    }
+    throw new Error(error.code === "PGRST204" || error.code === "42703"
+      ? "Profile search isn’t available yet. Please try again later."
+      : error.code === "42501"
+      ? "Discovery profiles aren’t available with the current access."
+      : "Profiles couldn’t be loaded. Please try again.", { cause: error });
+  }
+
+  const rows = data ?? [];
+  const profiles = rows.map((row) => {
+    // Accept bucket-relative paths, or paths prefixed with the bucket name.
+    const path = row.image_path?.trim().replace(/^\/+/, "").replace(/^profile-images\//, "");
+    const image = path ? client.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl : null;
+    return mapDiscoveryProfile(row, image);
+  });
+  return { profiles, nextOffset: offset + rows.length, hasMore: rows.length === limit };
+}

@@ -161,6 +161,7 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
               aria-label="Close filters" onClick={returnToApp}><FilterIcon name="close" size={19} /></button>
           </div>
           <p id="filters-description" className={styles.srOnly}>Choose who you want to meet. Apply Filters to save your choices.</p>
+          <p className={styles.selectionHelp}>Industry, Role / Profession, Experience and Skills filter Discovery. Other choices are saved as demo preferences.</p>
         </header>
 
         <div key={resetCount} className={styles.sections} data-filter-scroll>
@@ -199,10 +200,10 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
               options={INDUSTRIES} value={filters.industries} onChange={(value) => update("industries", value)} multiple searchInside />
           </FilterSection>
 
-          <FilterSection id="profession-heading" icon="person" title="Role / Profession">
+          <FilterSection id="profession-heading" icon="person" title="Role / Profession" detail="Any matching word">
             <SearchableSelect label="Profession" labelledBy="profession-heading" placeholder="Select or type a profession"
               options={PROFESSIONS} value={filters.profession ? [filters.profession] : []}
-              onChange={(value) => update("profession", value[0] ?? null)} allowCustom />
+              onChange={(value) => update("profession", value[0] ?? null)} allowCustom matchAnyWord />
           </FilterSection>
 
           <FilterSection id="experience-heading" icon="chart" title="Experience level">
@@ -210,10 +211,10 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
               onChange={(value) => update("experienceLevel", value)} />
           </FilterSection>
 
-          <FilterSection id="skills-heading" icon="wrench" title="Skills">
+          <FilterSection id="skills-heading" icon="wrench" title="Skills" detail="Any matching word">
             <SearchableSelect label="Skills" labelledBy="skills-heading" placeholder="Add skills (e.g. Python, Marketing, Sales...)"
               options={SKILLS} value={filters.skills} onChange={(value) => update("skills", value)}
-              multiple allowCustom maxSelections={MAX_SKILLS} chevron="chevronRight" />
+              multiple allowCustom matchAnyWord maxSelections={MAX_SKILLS} chevron="chevronRight" />
           </FilterSection>
 
           <FilterSection id="open-to-heading" icon="heart" title="Open to">

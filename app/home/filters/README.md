@@ -25,5 +25,23 @@ industry/skill arrays impose no corresponding restriction. Custom professions
 and skills are trimmed strings and survive saving and reloading. Skills are
 unique regardless of case and limited to five.
 
-This feature stores preferences only. Applying them to discovery results is a
-separate integration step; no database or Supabase connection is used here.
+## Discovery integration
+
+Applying filters saves them locally and returns to Discovery. The Discovery
+feature subscribes to changes and filters Supabase before 10-profile pagination.
+Industry selections match any selected array value. Role / Profession and Skills
+match any shared word, ignoring case and common punctuation; selected skills use
+OR. Different filter sections combine with AND. Experience uses the numeric
+year ranges shown in the controls, including both endpoints.
+
+The dropdown suggestions for Role / Profession and Skills also use any-word
+searching and accept partial words while typing. A custom value can be added
+even when other suggestions match. C#, C++ and Node.js stay distinct tokens.
+
+Looking for, distance, Work arrangement and Open to remain saved demo choices.
+The current profile table lacks the fields/location coordinates to apply them.
+The panel explains which controls currently filter Discovery.
+
+Run `../discover/search-functions.sql` in the Supabase SQL Editor to install
+the computed word fields used by the queries. The Filters panel itself still
+only stores preferences; Supabase requests belong to the Discovery feature.

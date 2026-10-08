@@ -48,6 +48,12 @@ export function createDefaultFilters(): Filters {
 }
 
 export const INDUSTRIES = [
+  "AI", "B2B", "Cloud Computing", "Construction", "Consulting",
+  "Consumer Apps", "Creative", "E-commerce", "Education", "Enterprise",
+  "Finance", "FinTech", "Healthcare", "HR", "Logistics", "Marketing",
+  "Media", "Mobile Technology", "Pre-launch", "Retail", "SaaS",
+  "Small Business", "Social Enterprise", "Social Impact", "Startups",
+  "Sustainability", "Technology",
   "Technology & Software",
   "Artificial Intelligence & Machine Learning",
   "Finance & FinTech",

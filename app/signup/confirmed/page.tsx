@@ -23,7 +23,7 @@ export default function ConfirmedPage() {
         const { data, error } = await getSupabaseBrowserClient().auth.getSession();
         if (error) throw error;
         if (!active) return;
-        if (data.session) router.replace("/home");
+        if (data.session) router.replace("/onboarding");
         else setMessage("This confirmation link is no longer available. If you already confirmed your email, return to Hi5. Otherwise, open the latest link in your inbox.");
       } catch {
         if (active) setMessage("We could not confirm your account. The link may have expired. Please check your inbox for the latest confirmation email.");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { DiscoveryIcon } from "./DiscoveryIcon";
@@ -8,15 +8,45 @@ import { ProfileCard } from "./ProfileCard";
 import { SaveProfileButton } from "./SaveProfileButton";
 import { SwipeActions } from "./SwipeActions";
 import { useSwipeDeck } from "./useSwipeDeck";
-import type { DiscoveryProfile } from "./mockProfiles";
+import type { SwipeDirection } from "./useSwipeDeck";
+import { recordProfileInteraction } from "../../lib/supabase/interactions";
+import type { ProfileInteractionResult } from "../../lib/supabase/interactions";
+import { InteractionFeedback } from "./InteractionFeedback";
+import type { InteractionNotice } from "./InteractionFeedback";
+import { useDiscoveryProfiles } from "./useDiscoveryProfiles";
+import { useDiscoveryFilters } from "./useDiscoveryFilters";
+import type { DiscoveryBatchLoader } from "./discoveryProfilesApi";
 import styles from "./Discovery.module.css";
 
 const discoveryViews = ["Recommended", "Nearby", "New here"] as const;
 
-export function DiscoveryExperience({ profiles }: { profiles: DiscoveryProfile[] }) {
+export function DiscoveryExperience() {
+  const filters = useDiscoveryFilters();
+  // A new search also remounts swipe/save state, clearing any departing old card.
+  return <DiscoveryResults key={filters.queryKey} loadBatch={filters.loadBatch} hasActiveFilters={filters.hasActiveFilters} />;
+}
+
+function DiscoveryResults({ loadBatch, hasActiveFilters }: {
+  loadBatch: DiscoveryBatchLoader | null;
+  hasActiveFilters: boolean;
+}) {
   const [view, setView] = useState<(typeof discoveryViews)[number]>("Recommended");
-  const deck = useSwipeDeck(profiles.length);
-  const activeProfile = profiles[deck.index];
+  const discovery = useDiscoveryProfiles(loadBatch);
+  const { removeProfile } = discovery;
+  const [interactionNotice, setInteractionNotice] = useState<InteractionNotice | null>(null);
+  const clearInteractionNotice = useCallback(() => setInteractionNotice(null), []);
+  const commitInteraction = useCallback((profileId: string, direction: SwipeDirection, signal: AbortSignal) => (
+    recordProfileInteraction({ targetUserId: profileId, action: direction === "right" ? "hi" : "pass", source: "discover", signal })
+  ), []);
+  const completeInteraction = useCallback((profileId: string, result: ProfileInteractionResult) => {
+    removeProfile(profileId);
+    setInteractionNotice((previous) => result.action === "hi"
+      ? { sequence: (previous?.sequence ?? 0) + 1, result }
+      : null);
+  }, [removeProfile]);
+  const activeProfile = discovery.profiles[0];
+  const deck = useSwipeDeck(activeProfile?.id ?? null, commitInteraction, completeInteraction);
+  const visibleProfiles = discovery.profiles.slice(0, 3);
 
   return (
     <>
@@ -39,8 +69,9 @@ export function DiscoveryExperience({ profiles }: { profiles: DiscoveryProfile[]
       </p>
       <p className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">
         {activeProfile
-          ? `Profile ${deck.index + 1} of ${profiles.length}: ${activeProfile.name}.`
-          : "You have explored all available profiles."}
+          ? `Profile ${discovery.swipedCount + 1}: ${activeProfile.name}.`
+          : discovery.error ? "Profiles could not be loaded."
+            : discovery.hasMore ? "Loading profiles." : "You have explored all available profiles."}
       </p>
 
       {activeProfile ? (
@@ -53,9 +84,7 @@ export function DiscoveryExperience({ profiles }: { profiles: DiscoveryProfile[]
               aria-busy={deck.busy}
               data-dismissing={deck.exitDirection ? "true" : undefined}
             >
-              {/* Hidden profiles keep the grid height stable throughout the deck. */}
-              {profiles.map((profile, profileIndex) => {
-                const position = profileIndex - deck.index;
+              {visibleProfiles.map((profile, position) => {
                 const active = position === 0;
                 const exitClass = active && deck.exitDirection
                   ? deck.exitDirection === "left" ? styles.exitLeft : styles.exitRight
@@ -102,15 +131,50 @@ export function DiscoveryExperience({ profiles }: { profiles: DiscoveryProfile[]
               <DiscoveryIcon name="calendar" size={17} />Meet
             </Link>
           </div>
+          <p className={styles.interactionStatus} role="status" aria-live="polite">
+            {deck.isSaving ? deck.exitDirection === "right" ? "Sending Hi…" : "Saving your pass…" : ""}
+          </p>
+          {deck.error && <p className={styles.interactionError} role="alert">{deck.error}</p>}
+          {discovery.error && (
+            <div className={styles.fetchError} role="alert">
+              <span>{discovery.error}</span>
+              <button type="button" onClick={() => void discovery.loadMore()} disabled={discovery.isLoading}>
+                {discovery.isLoading ? "Retrying…" : "Try again"}
+              </button>
+            </div>
+          )}
         </>
       ) : (
-        <div className={styles.emptyState}>
+        <div className={styles.emptyState} aria-busy={discovery.isLoading || (!discovery.error && discovery.hasMore)}>
           <span className={styles.emptyIcon}><DiscoveryIcon name="sparkles" size={32} /></span>
-          <h2>You&apos;re all caught up!</h2>
-          <p>You&apos;ve explored all available profiles for now.</p>
-          <button type="button" className="btn btn-primary" onClick={deck.reset}>Start again</button>
+          {discovery.error ? (
+            <>
+              <h2>Unable to load profiles</h2>
+              <p role="alert">{discovery.error}</p>
+              <button type="button" className="btn btn-primary" onClick={() => void discovery.loadMore()} disabled={discovery.isLoading}>Try again</button>
+            </>
+          ) : discovery.hasMore ? (
+            <>
+              <h2>Finding your next connections</h2>
+              <p>Loading profiles…</p>
+            </>
+          ) : (
+            <>
+              <h2>{hasActiveFilters && discovery.swipedCount === 0 ? "No profiles match these filters" : "You’re all caught up!"}</h2>
+              <p>{hasActiveFilters && discovery.swipedCount === 0
+                ? "Try changing your filters to meet more people."
+                : "You’ve explored all available profiles for now."}</p>
+              {hasActiveFilters && (
+                <Link href={{ pathname: "/home/filters", query: { from: "/home/discover" } }} className="btn btn-primary">Edit filters</Link>
+              )}
+              {(!hasActiveFilters || discovery.swipedCount > 0) && (
+                <button type="button" className={hasActiveFilters ? styles.secondaryButton : "btn btn-primary"} onClick={discovery.restart}>Start again</button>
+              )}
+            </>
+          )}
         </div>
       )}
+      <InteractionFeedback notice={interactionNotice} onExpire={clearInteractionNotice} />
     </>
   );
 }

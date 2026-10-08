@@ -1,6 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { DiscoveryIcon } from "./DiscoveryIcon";
-import type { DiscoveryProfile } from "./mockProfiles";
+import type { DiscoveryProfile } from "./discoveryProfile";
 import styles from "./Discovery.module.css";
 
 export function ProfileCard({
@@ -10,18 +13,21 @@ export function ProfileCard({
   profile: DiscoveryProfile;
   active: boolean;
 }) {
+  const [failedImage, setFailedImage] = useState<DiscoveryProfile["image"]>(null);
   const initials = profile.name.split(" ").map((part) => part[0]).slice(0, 2).join("");
 
   return (
     <article className={styles.card} aria-labelledby={`profile-${profile.id}`}>
       <div className={styles.photo}>
-        {profile.image ? (
+        {profile.image && profile.image !== failedImage ? (
           <Image
             src={profile.image}
             alt={`Portrait of ${profile.name}`}
             fill
             sizes="(max-width: 440px) calc(100vw - 48px), 392px"
-            loading={active ? "eager" : "lazy"}
+            loading="eager"
+            fetchPriority={active ? "high" : "auto"}
+            onError={() => setFailedImage(profile.image)}
             draggable={false}
             className={styles.headshot}
           />
@@ -40,7 +46,7 @@ export function ProfileCard({
 
       <div className={styles.profileInfo}>
         <div className={styles.nameRow}>
-          <h2 id={`profile-${profile.id}`}>{profile.name}</h2>
+          <h2 id={`profile-${profile.id}`} title={profile.name}>{profile.name}</h2>
           {profile.verified && (
             <span className={styles.verified} role="img" aria-label="Verified profile">
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -50,18 +56,18 @@ export function ProfileCard({
             </span>
           )}
         </div>
-        <p className={styles.professionalTitle}>{profile.professionalTitle}</p>
+        <p className={styles.professionalTitle} title={profile.professionalTitle}>{profile.professionalTitle}</p>
 
         <ul className={styles.details} aria-label="Professional details">
-          <li><DiscoveryIcon name="location" size={13} />{profile.location}</li>
-          <li><DiscoveryIcon name="industry" size={13} />{profile.industry}</li>
-          <li><DiscoveryIcon name="experience" size={14} />{profile.experience}</li>
+          <li title={profile.location}><DiscoveryIcon name="location" size={13} /><span>{profile.location}</span></li>
+          <li title={profile.industry}><DiscoveryIcon name="industry" size={13} /><span>{profile.industry}</span></li>
+          <li title={profile.experience}><DiscoveryIcon name="experience" size={14} /><span>{profile.experience}</span></li>
         </ul>
 
         <p className={styles.biography}>{profile.biography}</p>
         <ul className={styles.skills} aria-label="Skills and interests">
           {profile.skills.map((skill) => (
-            <li key={skill.label} className={styles.skill} data-tone={skill.tone}>
+            <li key={skill.label} className={styles.skill} data-tone={skill.tone} title={skill.label}>
               {skill.label}
             </li>
           ))}

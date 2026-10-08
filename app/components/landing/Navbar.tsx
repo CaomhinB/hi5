@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { LoginModal } from "./LoginModal";
 
 const links = [
   { href: "#why", label: "Why Hi5" },
@@ -16,6 +17,7 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [progress, setProgress] = useState(0);
+  const closeLogin = useCallback(() => setLoginOpen(false), []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -31,7 +33,6 @@ export function Navbar() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setLoginOpen(false);
         setMenuOpen(false);
       }
     };
@@ -56,7 +57,7 @@ export function Navbar() {
           </nav>
 
           <div className="nav-actions">
-            <button className="btn btn-glass btn-sm" onClick={() => setLoginOpen(true)}>
+            <button type="button" className="btn btn-glass btn-sm" onClick={() => { setMenuOpen(false); setLoginOpen(true); }}>
               Log in
             </button>
             <a href="/signup" className="btn btn-primary btn-sm nav-cta">
@@ -90,63 +91,7 @@ export function Navbar() {
         )}
       </header>
 
-      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {loginOpen && <LoginModal onClose={closeLogin} />}
     </>
-  );
-}
-
-function LoginModal({ onClose }: { onClose: () => void }) {
-  const [sent, setSent] = useState(false);
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal glass glass-strong"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Log in"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button className="modal-close" aria-label="Close" onClick={onClose}>
-          ✕
-        </button>
-        <Logo height={40} />
-        <h2 className="modal-title">Welcome back</h2>
-        <p className="modal-sub">This is a demo. No real login yet.</p>
-        <p className="modal-sub">
-          New to Hi5? <a href="/signup" className="text-gradient">Create your account</a>
-        </p>
-
-        {sent ? (
-          <div className="modal-done">
-            <span className="modal-done-tick">✓</span>
-            <p>Demo login worked. Real login comes later.</p>
-            <button className="btn btn-glass" onClick={onClose}>
-              Close
-            </button>
-          </div>
-        ) : (
-          <form
-            className="modal-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSent(true);
-            }}
-          >
-            <label>
-              Email
-              <input type="email" placeholder="you@company.com" autoComplete="off" />
-            </label>
-            <label>
-              Password
-              <input type="password" placeholder="••••••••" autoComplete="off" />
-            </label>
-            <button type="submit" className="btn btn-primary btn-lg">
-              Log in
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
   );
 }

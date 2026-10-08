@@ -17,49 +17,105 @@ type Gesture = {
 // Keep in sync with the exit and rear-card durations in Discovery.module.css.
 const EXIT_DURATION = 1000;
 
-export function useSwipeDeck(profileCount: number) {
-  const [index, setIndex] = useState(0);
+type PendingDismissal<Result> = {
+  profileId: string;
+  controller: AbortController;
+  animationFinished: boolean;
+  savedResult: { value: Result } | null;
+};
+
+export function useSwipeDeck<Result>(
+  activeProfileId: string | null,
+  onInteract: (profileId: string, direction: SwipeDirection, signal: AbortSignal) => Promise<Result>,
+  onDismissed: (profileId: string, result: Result) => void,
+) {
   const [dragX, setDragX] = useState(0);
   const [swipeThreshold, setSwipeThreshold] = useState(96);
   const [dragging, setDragging] = useState(false);
   const [exitDirection, setExitDirection] = useState<SwipeDirection | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const locked = useRef(false);
-  const pendingExit = useRef(false);
+  const pendingExit = useRef<PendingDismissal<Result> | null>(null);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(false);
 
-  useEffect(() => () => {
-    if (exitTimer.current !== null) clearTimeout(exitTimer.current);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      pendingExit.current?.controller.abort();
+      pendingExit.current = null;
+      if (exitTimer.current !== null) clearTimeout(exitTimer.current);
+    };
   }, []);
 
   function prefersReducedMotion() {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
-  function finishDismissal() {
-    // Both animationend and the fallback timer can fire. Advance exactly once.
-    if (!pendingExit.current) return;
-    pendingExit.current = false;
+  function completeDismissal(pending: PendingDismissal<Result>) {
+    if (pendingExit.current !== pending || !mounted.current
+      || !pending.animationFinished || !pending.savedResult) return;
+    pendingExit.current = null;
     if (exitTimer.current !== null) clearTimeout(exitTimer.current);
-    setIndex((current) => current + 1);
     setDragX(0);
     setExitDirection(null);
+    setIsSaving(false);
     // Rear cards have already moved forward during the exit animation.
     locked.current = false;
+    onDismissed(pending.profileId, pending.savedResult.value);
+  }
+
+  function finishDismissal() {
+    // Animation completion alone cannot discard a profile with an unsaved choice.
+    const pending = pendingExit.current;
+    if (!pending) return;
+    pending.animationFinished = true;
+    if (exitTimer.current !== null) clearTimeout(exitTimer.current);
+    completeDismissal(pending);
   }
 
   function dismiss(direction: SwipeDirection) {
-    if (locked.current || gesture.current || index >= profileCount) return;
+    if (locked.current || gesture.current || !activeProfileId) return;
     locked.current = true;
-    pendingExit.current = true;
+    const pending: PendingDismissal<Result> = {
+      profileId: activeProfileId,
+      controller: new AbortController(),
+      animationFinished: false,
+      savedResult: null,
+    };
+    pendingExit.current = pending;
+    setError(null);
+    setIsSaving(true);
     setDragging(false);
     setExitDirection(direction);
     // Fallback covers interrupted animations and reduced-motion CSS.
     exitTimer.current = setTimeout(finishDismissal, prefersReducedMotion() ? 0 : EXIT_DURATION + 80);
+
+    // Saving runs alongside the animation; advancement waits for both to finish.
+    void Promise.resolve().then(() => onInteract(pending.profileId, direction, pending.controller.signal))
+      .then((result) => {
+        if (pendingExit.current !== pending || !mounted.current || pending.controller.signal.aborted) return;
+        pending.savedResult = { value: result };
+        setIsSaving(false);
+        completeDismissal(pending);
+      }).catch((failure: unknown) => {
+        if (pendingExit.current !== pending || !mounted.current || pending.controller.signal.aborted) return;
+        pendingExit.current = null;
+        if (exitTimer.current !== null) clearTimeout(exitTimer.current);
+        locked.current = false;
+        setDragX(0);
+        setDragging(false);
+        setExitDirection(null);
+        setIsSaving(false);
+        setError(failure instanceof Error ? failure.message : "We couldn’t save your choice. Please try again.");
+      });
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || event.button !== 0 || locked.current || gesture.current) return;
+    if (!event.isPrimary || event.button !== 0 || locked.current || gesture.current || !activeProfileId) return;
     const width = event.currentTarget.getBoundingClientRect().width;
     const threshold = Math.min(120, Math.max(72, width * 0.24));
     setSwipeThreshold(threshold);
@@ -118,24 +174,13 @@ export function useSwipeDeck(profileCount: number) {
     setDragX(0);
   }
 
-  function reset() {
-    if (exitTimer.current !== null) clearTimeout(exitTimer.current);
-    gesture.current = null;
-    locked.current = false;
-    pendingExit.current = false;
-    setIndex(0);
-    setDragX(0);
-    setDragging(false);
-    setExitDirection(null);
-  }
-
   const passFeedback = exitDirection === "left" ? 1 : Math.min(1, Math.max(0, -dragX / swipeThreshold));
   const hiFeedback = exitDirection === "right" ? 1 : Math.min(1, Math.max(0, dragX / swipeThreshold));
 
   return {
-    index, dragX, dragging, exitDirection, passFeedback, hiFeedback,
-    busy: exitDirection !== null || dragging,
-    dismiss, finishDismissal, reset,
+    dragX, dragging, exitDirection, passFeedback, hiFeedback, isSaving, error,
+    busy: exitDirection !== null || dragging || isSaving,
+    dismiss, finishDismissal,
     pointerHandlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onLostPointerCapture: onPointerCancel },
   };
 }

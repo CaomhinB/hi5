@@ -79,7 +79,7 @@ export function SignupFlow() {
       }
       setPassword("");
       if (data.session) {
-        router.replace("/home");
+        router.replace("/onboarding");
       } else {
         setDone(true);
       }

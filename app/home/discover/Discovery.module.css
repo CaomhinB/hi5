@@ -78,12 +78,15 @@
   position: relative;
   display: grid;
   grid-template-areas: "card";
+  /* A fixed content frame keeps buttons still as the three mounted cards change. */
+  height: 480px;
   padding: 6px 4px 8px;
 }
 
 .cardLayer {
   grid-area: card;
   min-width: 0;
+  min-height: 0;
   visibility: hidden;
   pointer-events: none;
   transform-origin: 50% 70%;
@@ -135,6 +138,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   padding: 4px;
   overflow: hidden;
   border: 1px solid var(--glass-border);
@@ -228,6 +232,10 @@
 }
 
 .nameRow h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 20px;
   line-height: 1.2;
   letter-spacing: -0.035em;
@@ -240,6 +248,11 @@
 }
 
 .professionalTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  flex-shrink: 0;
   margin-top: 3px;
   font-size: 12px;
   font-weight: 600;
@@ -248,7 +261,8 @@
 
 .details {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
   gap: 5px 9px;
   margin: 7px 0 0;
   padding: 0;
@@ -259,16 +273,24 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  min-width: 0;
   color: var(--muted);
   font-size: 10px;
   line-height: 1.5;
 }
+
+.details li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .details svg {
   flex-shrink: 0;
 }
 
 .biography {
+  display: -webkit-box;
+  flex-shrink: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   margin-top: 9px;
   color: var(--muted);
   font-size: 12px;
@@ -279,12 +301,19 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  flex-shrink: 0;
+  max-height: 45px;
+  overflow: hidden;
   margin: 9px 0 11px;
   padding: 0;
   list-style: none;
 }
 
 .skill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 5px 11px;
   border-radius: 999px;
   background: rgba(42, 91, 234, 0.12);
@@ -303,6 +332,7 @@
   grid-template-columns: 16px minmax(0, 1fr) 14px;
   align-items: start;
   gap: 6px;
+  flex-shrink: 0;
   margin-top: auto;
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.9);
@@ -316,6 +346,10 @@
 }
 
 .whyProfile p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--muted);
   font-size: 10px;
   line-height: 1.45;
@@ -528,6 +562,14 @@
 
 .emptyState h2 { font-size: 24px; line-height: 1.25; }
 .emptyState p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.fetchError { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--glass-border); border-radius: 16px; background: var(--glass-bg); color: var(--muted); font-size: 12px; line-height: 1.5; }
+.fetchError button { flex-shrink: 0; min-height: 40px; padding: 8px; border-radius: 12px; color: var(--blue); font-family: inherit; font-weight: 600; cursor: pointer; }
+.fetchError button:disabled { cursor: default; opacity: 0.6; }
+.interactionStatus { min-height: 18px; margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.6; text-align: center; }
+.interactionError { margin-top: 6px; padding: 10px 14px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass-bg); color: #9c3651; font-size: 12px; line-height: 1.5; text-align: center; }
+.interactionToast { color: var(--blue); text-align: center; }
+.interactionToast[data-action="pass"] { color: var(--muted); }
+.interactionToast[data-action="hi"] .saveFeedbackIcon { background: var(--brand-gradient-soft); }
 
 .srOnly {
   position: absolute;
@@ -553,7 +595,13 @@
   .header p { font-size: 14px; }
   .viewSelectors { margin-top: 20px; }
   .viewButton, .secondaryButton { font-size: 13px; }
-  .deckViewport { margin-top: 10px; }
+  .stack { height: 500px; }
+  .deckViewport {
+    /* Extra space keeps departing cards visible across the desktop canvas. */
+    --swipe-gutter: min(360px, calc((100vw - 400px) / 2 - 32px));
+    margin: 10px calc(-1 * var(--swipe-gutter)) -2px;
+    padding-inline: var(--swipe-gutter);
+  }
   .photo { aspect-ratio: 1.5; }
 }
 

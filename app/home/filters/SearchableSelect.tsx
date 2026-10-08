@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { matchesAnySearchWord } from "../../lib/searchWords";
 import { FilterIcon } from "./FilterIcon";
 import styles from "./Filters.module.css";
 
@@ -18,6 +19,8 @@ type Props = {
   searchInside?: boolean;
   maxSelections?: number;
   chevron?: "chevronDown" | "chevronRight";
+  matchAnyWord?: boolean;
+  portalRootId?: string;
 };
 
 const normalize = (value: string) => value.trim().toLowerCase();
@@ -26,6 +29,8 @@ export function SearchableSelect({
   label, labelledBy, placeholder, options, value, onChange,
   multiple = false, allowCustom = false, searchInside = false,
   maxSelections, chevron = "chevronDown",
+  matchAnyWord = false,
+  portalRootId = "filters-popovers",
 }: Props) {
   const id = useId();
   const listId = `${id}-options`;
@@ -47,9 +52,10 @@ export function SearchableSelect({
 
   const selected = new Set(value.map(normalize));
   const pool = [...options, ...value.filter((item) => !options.some((option) => normalize(option) === normalize(item)))];
-  const matches = pool.filter((item) => normalize(item).includes(normalize(query)));
-  const custom = allowCustom && !!query.trim() && matches.length === 0;
-  const choices = custom ? [query.trim()] : matches;
+  const matches = pool.filter((item) => matchAnyWord
+    ? matchesAnySearchWord(item, query) : normalize(item).includes(normalize(query)));
+  const custom = allowCustom && !!query.trim() && !pool.some((item) => normalize(item) === normalize(query));
+  const choices = custom ? [...matches, query.trim()] : matches;
   const limitReached = maxSelections !== undefined && value.length >= maxSelections;
   const highlighted = Math.min(activeIndex, Math.max(0, choices.length - 1));
 
@@ -235,7 +241,7 @@ export function SearchableSelect({
     "aria-haspopup": "listbox" as const,
   };
 
-  const portalRoot = present ? document.getElementById("filters-popovers") : null;
+  const portalRoot = present ? document.getElementById(portalRootId) : null;
 
   return (
     <div ref={wrapperRef} className={styles.selectWrapper} onBlur={(event) => {
@@ -292,7 +298,7 @@ export function SearchableSelect({
       )}
       {maxSelections !== undefined && (
         <p id={helpId} className={styles.selectionHelp} role="status" aria-live="polite">
-          {value.length}/{maxSelections} skills selected{limitReached ? ". Remove a skill to add another." : ""}
+          {value.length}/{maxSelections} {label.toLowerCase()} selected{limitReached ? ". Remove one to add another." : ""}
         </p>
       )}
 
@@ -321,14 +327,14 @@ export function SearchableSelect({
                   className={styles.dropdownOption} data-highlighted={index === highlighted ? "true" : undefined}
                   onPointerMove={() => setActiveIndex(index)} onMouseDown={(event) => event.preventDefault()}
                   onClick={() => select(item)}>
-                  <span>{custom ? `+ Add "${item}"` : item}</span>
+                  <span>{custom && normalize(item) === normalize(query) ? `+ Add "${item}"` : item}</span>
                   {isSelected && <FilterIcon name="check" size={16} />}
                 </button>
               );
             })}
           </div>
           {!choices.length && <p className={styles.noResults} role="status">No {label.toLowerCase()} found.</p>}
-          {limitReached && <p className={styles.limitNote}>You can select up to {maxSelections} skills. Remove one to add another.</p>}
+          {limitReached && <p className={styles.limitNote}>You can select up to {maxSelections} {label.toLowerCase()}. Remove one to add another.</p>}
         </div>, portalRoot,
       )}
     </div>

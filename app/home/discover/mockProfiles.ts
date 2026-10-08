@@ -1,22 +1,7 @@
-import type { StaticImageData } from "next/image";
+import type { DiscoveryProfile } from "./discoveryProfile";
 import sarahHeadshot from "./Sarah_Cheng_Headshot.png";
 
-export type SkillTone = "blue" | "cyan" | "purple" | "pink";
-
-export interface DiscoveryProfile {
-  id: string;
-  name: string;
-  verified: boolean;
-  professionalTitle: string;
-  location: string;
-  industry: string;
-  experience: string;
-  biography: string;
-  skills: { label: string; tone: SkillTone }[];
-  whyThisProfile: string;
-  image: StaticImageData | string | null;
-  placeholderTone: "blue" | "purple" | "teal";
-}
+export type { DiscoveryProfile, SkillTone } from "./discoveryProfile";
 
 // Demo data only. The UI also accepts image URLs for future profile data.
 export const mockProfiles: DiscoveryProfile[] = [
