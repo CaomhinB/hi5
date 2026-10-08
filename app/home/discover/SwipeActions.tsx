@@ -8,11 +8,15 @@ export function SwipeActions({
   passFeedback,
   hiFeedback,
   onDismiss,
+  onMore,
+  moreOpen,
 }: {
   disabled: boolean;
   passFeedback: number;
   hiFeedback: number;
   onDismiss: (direction: SwipeDirection) => void;
+  onMore: (opener: HTMLButtonElement) => void;
+  moreOpen: boolean;
 }) {
   return (
     <div className={styles.swipeActions} role="group" aria-label="Profile actions">
@@ -43,7 +47,9 @@ export function SwipeActions({
       </button>
 
       <div className={styles.actionWithLabel}>
-        <button type="button" aria-labelledby="discover-more-label" className={styles.actionCircle}>
+        <button type="button" aria-labelledby="discover-more-label" className={styles.actionCircle}
+          disabled={disabled} aria-haspopup="dialog" aria-expanded={moreOpen}
+          onClick={(event) => onMore(event.currentTarget)}>
           <DiscoveryIcon name="more" size={25} />
         </button>
         <span id="discover-more-label" className={styles.actionLabel}>More</span>

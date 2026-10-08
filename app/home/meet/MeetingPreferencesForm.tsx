@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { refreshCurrentProfile, useCurrentProfile } from "../../lib/supabase/currentProfile";
 import { MeetIcon } from "./MeetIcon";
 import {
   AVAILABILITY_OPTIONS, createDefaultMeetingPreferences, DURATION_OPTIONS,
@@ -8,13 +10,8 @@ import {
   validateMeetingPreferences,
 } from "./meetingOptions";
 import type { MeetingPreferences, TravelRadius } from "./meetingOptions";
-import {
-  getMeetingPreferencesSnapshot, parseMeetingPreferences, saveMeetingPreferences,
-  subscribeToMeetingPreferences,
-} from "./meetingStorage";
+import { useMeetingPreferences } from "./useMeetingPreferences";
 import styles from "./Meet.module.css";
-
-const serverSnapshot = () => null;
 
 function RadioChoices<T extends string>({ name, options, value, onChange, columns }: {
   name: string;
@@ -37,16 +34,33 @@ function RadioChoices<T extends string>({ name, options, value, onChange, column
 }
 
 export function MeetingPreferencesForm() {
-  const raw = useSyncExternalStore(subscribeToMeetingPreferences, getMeetingPreferencesSnapshot, serverSnapshot);
-  const saved = useMemo(() => parseMeetingPreferences(raw), [raw]);
+  const account = useCurrentProfile();
+  if (!account.context) {
+    const guest = account.status === "guest";
+    return <div className={styles.form}>
+      <div className={styles.sections}><section className={`${styles.card} ${styles.loadState}`} aria-busy={account.status === "loading"}>
+        <h2 className={styles.sectionTitle}>{guest ? "Log in to save your preferences" : account.error ? "Your account is unavailable" : "Getting your preferences ready…"}</h2>
+        <p className={styles.description}>{guest ? "Meeting preferences are stored on your own Hi5 profile." : account.error || "Loading your profile."}</p>
+        {guest ? <Link href="/" className="btn btn-primary">Go to log in</Link>
+          : account.error && <button type="button" className="btn btn-glass" onClick={() => void refreshCurrentProfile()}>Try again</button>}
+      </section></div>
+    </div>;
+  }
+  return <ProfileMeetingPreferencesForm key={`${account.context.authUserId}:${account.context.publicUserId}`}
+    authUserId={account.context.authUserId} profileId={account.context.publicUserId} />;
+}
+
+function ProfileMeetingPreferencesForm({ authUserId, profileId }: { authUserId: string; profileId: string }) {
+  const stored = useMeetingPreferences(authUserId, profileId);
   const [draft, setDraft] = useState<MeetingPreferences | null>(null);
   const [lastTravelRadius, setLastTravelRadius] = useState<TravelRadius | undefined>(undefined);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [methodError, setMethodError] = useState(false);
   const methodsRef = useRef<HTMLFieldSetElement>(null);
-  const preferences = draft ?? saved;
+  const preferences = draft ?? stored.preferences;
   const hasTravel = preferences.locationPreference !== "remote";
+  const disabled = stored.isLoading || stored.isSaving || !!stored.loadError;
 
   function update(patch: Partial<MeetingPreferences>) {
     setDraft({ ...preferences, ...patch });
@@ -55,7 +69,8 @@ export function MeetingPreferencesForm() {
     setMethodError(false);
   }
 
-  function save() {
+  async function save() {
+    if (disabled) return;
     const validationError = validateMeetingPreferences(preferences);
     setSuccess(false);
     if (validationError) {
@@ -69,20 +84,27 @@ export function MeetingPreferencesForm() {
       return;
     }
     try {
-      saveMeetingPreferences(preferences);
+      const result = await stored.save(preferences);
+      if (!result) return;
+      setDraft(result);
       setError("");
       setMethodError(false);
       setSuccess(true);
-    } catch {
-      setError("Your preferences couldn’t be saved. Please allow browser storage and try again.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Your preferences couldn’t be saved. Please try again.");
       setMethodError(false);
     }
   }
 
   return (
-    <form className={styles.form} aria-label="Meeting preferences" noValidate onSubmit={(event) => event.preventDefault()}>
+    <form className={styles.form} aria-label="Meeting preferences" aria-busy={stored.isLoading || stored.isSaving}
+      noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
       <div className={styles.sections} data-meet-scroll>
+        {stored.isLoading ? <p className={styles.loadMessage} role="status">Loading your meeting preferences…</p>
+          : stored.loadError ? <div className={styles.loadMessage} role="alert"><p>{stored.loadError}</p><button type="button" className="btn btn-glass" onClick={stored.retry}>Try again</button></div>
+            : !stored.hasRecord && <p className={styles.loadMessage}>You haven’t set meeting preferences yet. Choose your options and save them to your profile.</p>}
         <fieldset ref={methodsRef} className={styles.card} aria-labelledby="meet-methods-title"
+          disabled={disabled}
           aria-describedby={methodError ? "meet-methods-description meet-method-error" : "meet-methods-description"}>
           <legend className={styles.srOnly}>How would you like to meet?</legend>
           <h2 id="meet-methods-title" className={styles.sectionTitle}><MeetIcon name="coffee" />How would you like to meet?</h2>
@@ -105,7 +127,7 @@ export function MeetingPreferencesForm() {
           {methodError && <p id="meet-method-error" className={styles.fieldError} role="alert">{error}</p>}
         </fieldset>
 
-        <fieldset className={styles.card} aria-labelledby="meet-location-title" aria-describedby="meet-location-description">
+        <fieldset disabled={disabled} className={styles.card} aria-labelledby="meet-location-title" aria-describedby="meet-location-description">
           <legend className={styles.srOnly}>Location preference</legend>
           <h2 id="meet-location-title" className={styles.sectionTitle}><MeetIcon name="location" />Location preference</h2>
           <p id="meet-location-description" className={styles.description}>Where are you comfortable meeting?</p>
@@ -141,7 +163,7 @@ export function MeetingPreferencesForm() {
           </div>
         </fieldset>
 
-        <fieldset className={styles.card} aria-labelledby="meet-availability-title" aria-describedby="meet-availability-description">
+        <fieldset disabled={disabled} className={styles.card} aria-labelledby="meet-availability-title" aria-describedby="meet-availability-description">
           <legend className={styles.srOnly}>General availability</legend>
           <h2 id="meet-availability-title" className={styles.sectionTitle}><MeetIcon name="calendar" />General availability</h2>
           <p id="meet-availability-description" className={styles.description}>When are you usually free?</p>
@@ -159,7 +181,7 @@ export function MeetingPreferencesForm() {
           </div>
         </fieldset>
 
-        <fieldset className={styles.card} aria-labelledby="meet-duration-title">
+        <fieldset disabled={disabled} className={styles.card} aria-labelledby="meet-duration-title">
           <legend className={styles.srOnly}>Preferred meeting duration</legend>
           <h2 id="meet-duration-title" className={styles.sectionTitle}><MeetIcon name="clock" />Preferred meeting duration</h2>
           <RadioChoices name="preferredDuration" options={DURATION_OPTIONS} value={preferences.preferredDuration} columns={2}
@@ -171,6 +193,7 @@ export function MeetingPreferencesForm() {
             <label htmlFor="meet-additional-preferences">Additional preferences <span className={styles.optional}>(optional)</span></label>
           </h2>
           <textarea id="meet-additional-preferences" name="additionalPreferences" className={styles.notes}
+            disabled={disabled}
             rows={4} maxLength={MAX_PREFERENCE_CHARACTERS} aria-describedby="meet-notes-counter"
             placeholder="e.g. Happy to meet for coffee in Brighton city centre, or have a video call after work."
             value={preferences.additionalPreferences} onChange={(event) => update({ additionalPreferences: event.target.value.slice(0, MAX_PREFERENCE_CHARACTERS) })} />
@@ -179,8 +202,8 @@ export function MeetingPreferencesForm() {
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className={`btn btn-primary ${styles.saveButton}`} onClick={save}>Save preferences</button>
-        <button type="button" className={styles.resetButton} onClick={() => {
+        <button type="submit" disabled={disabled} className={`btn btn-primary ${styles.saveButton}`}>{stored.isSaving ? "Saving…" : "Save preferences"}</button>
+        <button type="button" disabled={disabled} className={styles.resetButton} onClick={() => {
           setDraft(createDefaultMeetingPreferences());
           setLastTravelRadius(25);
           setSuccess(false);

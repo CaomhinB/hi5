@@ -70,7 +70,7 @@ export function MeetPanel({ returnTo }: { returnTo: string | null }) {
       close();
     } else if (event.key === "Tab") {
       const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
+        'a[href], button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
       ) ?? []).filter((element) => !element.closest("[inert]") && element.getClientRects().length > 0);
       const first = focusable[0];
       const last = focusable[focusable.length - 1];

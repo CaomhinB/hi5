@@ -7,6 +7,8 @@ import { DiscoveryIcon } from "./DiscoveryIcon";
 import { ProfileCard } from "./ProfileCard";
 import { SaveProfileButton } from "./SaveProfileButton";
 import { SwipeActions } from "./SwipeActions";
+import { DiscoveryProfileOverlay } from "./DiscoveryProfileOverlay";
+import type { DiscoveryProfile } from "./discoveryProfile";
 import { useSwipeDeck } from "./useSwipeDeck";
 import type { SwipeDirection } from "./useSwipeDeck";
 import { recordProfileInteraction } from "../../lib/supabase/interactions";
@@ -31,6 +33,8 @@ function DiscoveryResults({ loadBatch, hasActiveFilters }: {
   hasActiveFilters: boolean;
 }) {
   const [view, setView] = useState<(typeof discoveryViews)[number]>("Recommended");
+  const [expandedProfile, setExpandedProfile] = useState<{ profile: DiscoveryProfile; opener: HTMLButtonElement } | null>(null);
+  const closeProfile = useCallback(() => setExpandedProfile(null), []);
   const discovery = useDiscoveryProfiles(loadBatch);
   const { removeProfile } = discovery;
   const [interactionNotice, setInteractionNotice] = useState<InteractionNotice | null>(null);
@@ -120,6 +124,8 @@ function DiscoveryResults({ loadBatch, hasActiveFilters }: {
             passFeedback={deck.passFeedback}
             hiFeedback={deck.hiFeedback}
             onDismiss={deck.dismiss}
+            moreOpen={expandedProfile !== null}
+            onMore={(opener) => { if (!deck.busy) setExpandedProfile({ profile: activeProfile, opener }); }}
           />
 
           <div className={styles.secondaryActions} role="group" aria-label="Additional profile actions">
@@ -175,6 +181,8 @@ function DiscoveryResults({ loadBatch, hasActiveFilters }: {
         </div>
       )}
       <InteractionFeedback notice={interactionNotice} onExpire={clearInteractionNotice} />
+      {expandedProfile && <DiscoveryProfileOverlay key={expandedProfile.profile.id}
+        preview={expandedProfile.profile} returnFocusTo={expandedProfile.opener} onClose={closeProfile} />}
     </>
   );
 }

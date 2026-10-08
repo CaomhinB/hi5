@@ -157,6 +157,10 @@
 .resetButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 8px 14px; border-radius: 999px; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 180ms, color 180ms; }
 .feedback { width: 100%; }
 .feedback:empty { display: none; }
+.loadMessage { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--glass-border); border-radius: 16px; background: var(--brand-gradient-soft); color: var(--muted); font-size: 12px; line-height: 1.7; }
+.loadMessage :global(.btn), .loadState :global(.btn) { margin-top: 12px; min-height: 40px; padding-inline: 18px; font-size: 12px; }
+.form button:disabled { opacity: 0.55; cursor: default; transform: none; }
+.card:disabled { opacity: 0.65; }
 .successMessage { display: flex; justify-content: center; align-items: flex-start; gap: 7px; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 14px; background: rgba(223, 248, 239, 0.65); color: #236b57; font-size: 12px; line-height: 1.6; text-align: left; }
 .successMessage svg { flex-shrink: 0; margin-top: 1px; }
 .fieldError, .saveError { color: #9c3651; font-size: 12px; line-height: 1.6; }

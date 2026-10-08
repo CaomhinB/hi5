@@ -7,6 +7,10 @@
 
 - `discoveryProfilesApi.ts` selects card fields in pages of 10 using inclusive
   `.range(offset, offset + limit - 1)`, ordered by `created_at` then unique `id`.
+- Signed-in requests resolve `public.users.id` through the current session's
+  `auth_user_id` and exclude that ID with `.neq("id", ownProfileId)` before
+  pagination. Visitors keep public demo access. Identity lookup failures stop
+  that request rather than loading a batch that might contain the viewer.
 - `useDiscoveryProfiles.ts` owns the local queue, offset, request lock, errors,
   exhaustion flag, and ID deduplication. It refills at four remaining profiles.
 - Successful responses append to the current queue, including any swipes that
@@ -20,6 +24,43 @@
   temporary per-card showcase.
 - Requests are aborted on unmount/restart, stale results are ignored, and React
   Strict Mode's discarded setup does not start a duplicate initial request.
+
+## Full profile overlay
+
+More opens a read-only, responsive modal for the currently active card. It loads
+that single `user_profiles` record by its ID through
+`fetchDiscoveryProfileDetails`; it does not expand the batch query or load other
+profiles. The preview photo/name appear immediately, with a loading message,
+error feedback and Retry for the full details. Photo, age, bio, location, role,
+organisation, years of experience, every industry/skill/interest, projects,
+portfolio, LinkedIn and GitHub links are shown, with joined/updated dates.
+Links only become clickable for HTTP/HTTPS URLs.
+
+Meeting preferences appear between Current projects and Explore their work.
+Their single-record read runs alongside the profile request, using only the
+active profile ID. The section shows meeting types, location, travel distance,
+availability, duration and additional notes, using the shared Meet catalog and
+canonical storage mappings. Missing rows show Not added yet without assigning
+defaults. Preference errors have their own Retry and leave the rest of the
+profile usable. Contents still appear only after the entrance animation ends.
+Run the updated `app/home/meet/meeting-preferences.sql` to allow these reads:
+preferences follow profile visibility while write guards enforce ownership.
+
+`DiscoveryProfileOverlay.tsx` and its CSS own the modal. It matches the existing
+bottom panels, with a 650 ms entrance. The native modal blocks background
+controls, keeps focus inside, locks background scrolling and restores focus to
+More when closed. Close, Back to Discover, backdrop clicks and Escape all close
+it. Requests are aborted on unmount, reduced motion is respected, and closing
+leaves the queue, active card and temporary Save state in place. More is disabled
+during a swipe or pending interaction. Profile details use the existing public
+profile read grant; meeting preferences need the read policy described above.
+
+The dialog is sized to the visual viewport and focused at its resting position
+before its transform animation starts. Its outer containers use `overflow: clip`
+so Safari cannot scroll the sheet to an offscreen animated control. Background
+scrolling is locked with a fixed body and restored to its saved position on close.
+Full details fetch during the entrance but only render after motion finishes;
+nested cards do not need additional backdrop blurs inside the frosted panel.
 
 ## Hi and Pass interactions
 
@@ -72,6 +113,9 @@ apply database permission changes. This script does not grant write access.
 before fetching. A canonical query key remounts the queue and swipe state when
 supported search criteria change. Existing requests are cancelled and the offset
 starts at zero. Changes to demo preferences do not restart Discovery.
+The query key also includes the signed-in account, so login, logout and account
+switches discard the old queue and swipe state. Initial loading waits for the
+shared account lookup; each batch checks the current session before querying.
 
 `discoveryFilters.ts` maps Industry, Role / Profession, Skills and numeric
 Experience. Industry uses exact array overlap. Profession and Skills match any

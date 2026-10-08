@@ -1,0 +1,50 @@
+.overlay { position: fixed; inset: var(--profile-viewport-top, 0px) 0 auto; width: 100%; max-width: none; height: var(--profile-viewport-height, 100dvh); max-height: none; margin: 0; padding: max(20px, env(safe-area-inset-top, 0px)) 0 0; overflow: clip; border: 0; background: transparent; color: var(--navy); overscroll-behavior: none; opacity: 0; }
+.overlay[data-ready="true"] { opacity: 1; }
+.overlay[open] { display: grid; align-items: end; justify-items: center; }
+.overlay:not([open]) { display: none; }
+.overlay::backdrop { background: rgba(73, 85, 134, 0.2); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); opacity: 0; transition: opacity 240ms; }
+.overlay[data-ready="true"]::backdrop { opacity: 1; }
+.overlay[data-closing="true"]::backdrop { opacity: 0; }
+.panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; max-width: 480px; height: calc(var(--profile-viewport-height, 100dvh) - max(20px, env(safe-area-inset-top, 0px))); min-height: 0; overflow: clip; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 28px 28px 0 0; background: radial-gradient(ellipse at 0% 0%, rgba(207, 226, 255, 0.75), transparent 55%), radial-gradient(ellipse at 100% 95%, rgba(219, 202, 255, 0.7), transparent 50%), linear-gradient(145deg, rgba(243, 248, 255, 0.94), rgba(237, 240, 255, 0.96)); box-shadow: 0 -8px 48px rgba(38, 54, 113, 0.16), inset 0 1px 0 white; transform: translate3d(0, 0, 0); will-change: transform; }
+.overlay[data-entered="true"]:not([data-closing="true"]) .panel { will-change: auto; }
+.header { padding: 8px 20px 12px; }
+.grabHandle { display: block; width: 36px; height: 4px; margin: 0 auto 10px; border-radius: 999px; background: rgba(93, 107, 138, 0.42); }
+.titleRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.titleRow h2 { font-size: 22px; line-height: 1.4; }
+.closeButton { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border: 1px solid var(--glass-border); border-radius: 50%; background: rgba(255, 255, 255, 0.5); color: var(--muted); cursor: pointer; }
+.content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 max(20px, env(safe-area-inset-right, 0px)) 20px max(20px, env(safe-area-inset-left, 0px)); scrollbar-width: thin; scrollbar-color: rgba(123, 92, 240, 0.25) transparent; scroll-padding-block: 18px; }
+.hero { overflow: hidden; margin-bottom: 16px; border: 1px solid var(--glass-border); border-radius: 24px; background: rgba(255, 255, 255, 0.58); }
+.portrait { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; background: var(--brand-gradient-soft); }
+.portrait img { object-fit: cover; object-position: center 35%; }
+.initials { color: var(--blue); font-size: 60px; font-weight: 700; letter-spacing: -0.04em; }
+.heroText { padding: 18px; }
+.heroText h3 { font-size: 24px; line-height: 1.4; }
+.heroText > p { margin-top: 6px; font-size: 13px; line-height: 1.7; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.summary > span { display: inline-flex; align-items: flex-start; gap: 5px; }
+.summary svg { flex-shrink: 0; margin-top: 2px; }
+.section { padding: 18px; margin-top: 14px; box-shadow: 0 6px 24px rgba(60, 72, 170, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9); }
+.panel .section { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.section h3 { margin-bottom: 16px; font-size: 15px; line-height: 1.5; }
+.details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.details > div { min-width: 0; }
+.wide { grid-column: 1 / -1; }
+.details dt { margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.5; }
+.details dd { color: var(--navy); font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; white-space: pre-wrap; }
+.empty { color: var(--muted); font-size: 12px; }
+.tags { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; list-style: none; }
+.tags li { padding: 5px 11px; border-radius: 999px; background: rgba(42, 91, 234, 0.09); color: var(--blue); font-size: 11px; font-weight: 600; line-height: 1.6; white-space: normal; }
+.tags li:nth-child(3n + 2) { background: rgba(34, 211, 238, 0.13); color: #127891; }
+.tags li:nth-child(3n) { background: rgba(123, 92, 240, 0.12); color: #6245c6; }
+.workLink { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.dates { display: flex; flex-direction: column; gap: 5px; margin-top: 20px; padding-inline: 4px; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.status { padding: 12px 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.error { padding: 16px 18px; border: 1px solid rgba(187, 70, 103, 0.16); border-radius: 18px; background: rgba(255, 238, 245, 0.75); color: #9c3651; font-size: 13px; line-height: 1.7; }
+.error :global(.btn) { min-height: 40px; margin-top: 12px; padding-inline: 18px; font-size: 12px; }
+.footer { padding: 12px 20px max(16px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--glass-border); background: rgba(238, 243, 255, 0.85); }
+.footer :global(.btn) { width: 100%; min-height: 46px; font-size: 13px; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (min-width: 768px) { .overlay { padding: 24px; } .overlay[open] { align-items: center; } .panel { height: min(900px, calc(var(--profile-viewport-height, 100dvh) - 48px)); border-bottom: 1px solid var(--glass-border); border-radius: 28px; } .footer { border-radius: 0 0 28px 28px; padding: 16px 20px 20px; } }
+@media (max-width: 359px) { .header, .content, .footer { padding-inline: 16px; } .section, .heroText { padding: 16px; } .heroText h3 { font-size: 21px; } .details { grid-template-columns: 1fr; } }
+@media (hover: hover) { .closeButton:hover { background: rgba(255, 255, 255, 0.8); color: var(--blue); } }
+@media (prefers-reduced-motion: reduce) { .panel { will-change: auto; } .overlay::backdrop { transition: none; } }
