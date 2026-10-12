@@ -13,6 +13,11 @@ export interface ProfileInteractionResult {
 }
 
 function interactionError(code: string, message: string): string {
+  if (/shortlist has expired|shortlist has expired or been replaced|Hi has expired/i.test(message)) {
+    return "This Hi5 round has ended. Refresh to see your new recommendations.";
+  }
+  if (/first Hi5 decision is final/i.test(message)) return "You’ve already made your choice for this Hi5 round.";
+  if (/not in your displayed Hi5 shortlist/i.test(message)) return "This profile is no longer in your Hi5. Please refresh.";
   if (/Authenticated user does not have a public\.users record/i.test(message)) {
     return "Your account setup isn’t complete yet. Please complete it before trying again.";
   }
@@ -27,11 +32,13 @@ function interactionError(code: string, message: string): string {
 }
 
 /** IDs here belong to public.users. The RPC resolves the sender from auth.uid(). */
-export async function recordProfileInteraction({ targetUserId, action, source, signal }: {
+export async function recordProfileInteraction({ targetUserId, action, source, signal, expectedBatchId, expectedAuthUserId }: {
   targetUserId: string;
   action: InteractionAction;
   source: InteractionSource;
   signal: AbortSignal;
+  expectedBatchId?: string;
+  expectedAuthUserId?: string;
 }): Promise<ProfileInteractionResult> {
   const client = getSupabaseBrowserClient();
   const { data: sessionData, error: sessionError } = await client.auth.getSession();
@@ -39,11 +46,17 @@ export async function recordProfileInteraction({ targetUserId, action, source, s
   if (sessionError || !sessionData.session) {
     throw new Error("Please sign in to say Hi or pass a profile.");
   }
+  if (expectedAuthUserId && sessionData.session.user.id !== expectedAuthUserId) {
+    throw new Error("Your signed-in account changed. Please reload this page.");
+  }
+  if (source === "hi5" && !expectedBatchId) throw new Error("Please refresh your Hi5 before making a choice.");
 
-  const { data, error } = await client.rpc(action === "hi" ? "say_hi" : "pass_profile", {
-    target_user_id: targetUserId,
-    interaction_origin: source,
-  }).abortSignal(signal);
+  const functionName = source === "hi5" ? action === "hi" ? "say_hi5" : "pass_hi5"
+    : action === "hi" ? "say_hi" : "pass_profile";
+  const parameters = source === "hi5"
+    ? { target_user_id: targetUserId, expected_batch_id: expectedBatchId }
+    : { target_user_id: targetUserId, interaction_origin: source };
+  const { data, error } = await client.rpc(functionName, parameters).abortSignal(signal);
   signal.throwIfAborted();
   if (error) throw new Error(interactionError(error.code, error.message), { cause: error });
 

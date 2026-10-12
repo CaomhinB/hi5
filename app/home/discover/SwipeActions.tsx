@@ -10,6 +10,7 @@ export function SwipeActions({
   onDismiss,
   onMore,
   moreOpen,
+  decisionMade = false,
 }: {
   disabled: boolean;
   passFeedback: number;
@@ -17,6 +18,7 @@ export function SwipeActions({
   onDismiss: (direction: SwipeDirection) => void;
   onMore: (opener: HTMLButtonElement) => void;
   moreOpen: boolean;
+  decisionMade?: boolean;
 }) {
   return (
     <div className={styles.swipeActions} role="group" aria-label="Profile actions">
@@ -26,7 +28,7 @@ export function SwipeActions({
           aria-labelledby="discover-pass-label"
           className={`${styles.actionCircle} ${styles.passButton}`}
           style={{ "--feedback": passFeedback } as CSSProperties}
-          disabled={disabled}
+          disabled={disabled || decisionMade}
           onClick={() => onDismiss("left")}
         >
           <DiscoveryIcon name="close" size={25} />
@@ -38,7 +40,7 @@ export function SwipeActions({
         type="button"
         className={styles.hiButton}
         style={{ "--feedback": hiFeedback } as CSSProperties}
-        disabled={disabled}
+        disabled={disabled || decisionMade}
         onClick={() => onDismiss("right")}
         aria-label="Say Hi"
       >

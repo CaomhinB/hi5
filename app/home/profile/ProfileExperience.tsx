@@ -8,6 +8,7 @@ import { refreshCurrentProfile, useCurrentProfile } from "../../lib/supabase/cur
 import { profilePhotoUrl } from "../../onboarding/onboardingApi";
 import { isProfileComplete, uniqueLabels } from "../../onboarding/profileModel";
 import type { ProfileSection } from "../../onboarding/profileModel";
+import { ProfileMatchingPreferences } from "./ProfileMatchingPreferences";
 import styles from "./Profile.module.css";
 
 export function ProfileAccessState({ state }: { state: ReturnType<typeof useCurrentProfile> }) {
@@ -105,6 +106,7 @@ export function ProfileExperience() {
       <Detail label="Experience" value={profile.experience == null ? null : `${profile.experience} ${profile.experience === 1 ? "year" : "years"}`} wide />
       <Detail label="Industries" value={<Tags values={profile.industries} />} wide />
     </ProfileSectionCard>
+    <ProfileMatchingPreferences key={context.authUserId} context={context} />
     <ProfileSectionCard section="skills" title="Skills & interests">
       <Detail label="Skills" value={<Tags values={profile.skills} />} wide />
       <Detail label="Interests" value={<Tags values={profile.interests} />} wide />

@@ -11,6 +11,7 @@ import { uniqueLabels } from "../../onboarding/profileModel";
 import { loadProfileMeetingPreferences } from "../meet/meetingPreferencesApi";
 import { profileMeetingPreferencesDetails } from "../meet/meetingPreferencesModel";
 import type { ProfileMeetingPreferencesRecord } from "../meet/meetingPreferencesModel";
+import { matchingLabels } from "../profile/profileMatchingModel";
 import styles from "./DiscoveryProfileOverlay.module.css";
 
 function Detail({ label, value, wide = false }: { label: string; value: ReactNode; wide?: boolean }) {
@@ -187,6 +188,7 @@ export function DiscoveryProfileOverlay({ preview, returnFocusTo, onClose }: {
   // Fetch while the sheet moves, but keep its contents stable until it settles.
   const shownDetails = entered ? details : null;
   const profile = shownDetails?.profile;
+  const networking = profile ? matchingLabels(profile) : null;
   const meetingDetails = meeting.record ? profileMeetingPreferencesDetails(meeting.record) : null;
   const name = profile?.name?.trim() || preview.name;
   const title = profile ? [profile.job_title, profile.organisation].filter(Boolean).join(" · ") : preview.professionalTitle;
@@ -237,6 +239,12 @@ export function DiscoveryProfileOverlay({ preview, returnFocusTo, onClose }: {
             <Detail label="Experience" value={profile.experience == null ? null : `${profile.experience} ${profile.experience === 1 ? "year" : "years"}`} wide />
             <Detail label="Industries" value={<Tags values={profile.industries} />} wide />
           </Section>
+          {networking && <Section title="Networking preferences">
+            <Detail label="City" value={networking.city} />
+            <Detail label="Connect with me as" value={networking.role} />
+            <Detail label="Work arrangement" value={networking.work} />
+            <Detail label="Open to" value={networking.open} />
+          </Section>}
           <Section title="Skills & interests">
             <Detail label="Skills" value={<Tags values={profile.skills} />} wide />
             <Detail label="Interests" value={<Tags values={profile.interests} />} wide />

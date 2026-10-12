@@ -1,5 +1,7 @@
 import { INDUSTRIES, PROFESSIONS, SKILLS } from "../home/filters/filterOptions";
 import { interests } from "../signup/options";
+import { matchingDraft, MATCHING_ROLE_OPTIONS, MATCHING_WORK_OPTIONS, MATCHING_OPEN_OPTIONS } from "../home/profile/profileMatchingModel";
+import type { MatchingDraft } from "../home/profile/profileMatchingModel";
 
 export { INDUSTRIES, PROFESSIONS };
 export const SKILL_OPTIONS = [...new Set([...SKILLS, "Sales", "Negotiation", "CRM", "Account Management", "Partnerships", "Strategy", "Marketing", "Leadership", "Communication", "Project Management"])];
@@ -27,6 +29,10 @@ export interface ProfileRecord {
   image_path: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  city?: string | null;
+  networking_role?: string | null;
+  work_arrangement?: string | null;
+  open_to?: string | null;
 }
 
 export interface ProfileDraft {
@@ -44,6 +50,9 @@ export interface ProfileDraft {
   portfolio_url: string;
   linkedin_url: string;
   github_url: string;
+  networking_role: MatchingDraft["networking_role"];
+  work_arrangement: MatchingDraft["work_arrangement"];
+  open_to: MatchingDraft["open_to"];
 }
 
 export interface ProfileIssue { field: keyof ProfileDraft | "image_path"; message: string; }
@@ -62,6 +71,7 @@ export function createProfileDraft(profile: ProfileRecord | null, metadata: Reco
   const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
   const savedIndustries = uniqueLabels(profile?.industries?.length ? profile.industries : metadata.industries);
   const listedIndustries = savedIndustries.map((industry) => INDUSTRIES.find((option) => option.toLowerCase() === industry.toLowerCase())).filter((item): item is (typeof INDUSTRIES)[number] => !!item);
+  const networking = matchingDraft(profile ?? {});
   return {
     name: text(profile?.name) || text(metadata.full_name),
     age: profile?.age == null ? "" : String(profile.age),
@@ -72,13 +82,15 @@ export function createProfileDraft(profile: ProfileRecord | null, metadata: Reco
     interests: uniqueLabels(profile?.interests?.length ? profile.interests : metadata.interests),
     current_projects: text(profile?.current_projects), portfolio_url: text(profile?.portfolio_url),
     linkedin_url: text(profile?.linkedin_url), github_url: text(profile?.github_url),
+    networking_role: networking.networking_role, work_arrangement: networking.work_arrangement,
+    open_to: networking.open_to,
   };
 }
 
 const stepFields: (keyof ProfileDraft | "image_path")[][] = [
   ["name", "location", "bio", "age"],
   ["job_title", "experience", "industries", "organisation"],
-  ["skills", "interests", "current_projects"],
+  ["skills", "interests", "current_projects", "networking_role", "work_arrangement", "open_to"],
   ["image_path", "portfolio_url", "linkedin_url", "github_url"],
 ];
 
@@ -106,6 +118,9 @@ export function validateProfileDraft(draft: ProfileDraft, hasPhoto: boolean, ste
     ["skills", draft.skills.length >= 1 && draft.skills.every((item) => item.trim().length > 0 && item.length <= 80), "Choose or add at least one skill. Each skill can have up to 80 characters."],
     ["interests", draft.interests.every((item) => item.trim().length > 0 && item.length <= 80), "Keep each interest within 80 characters."],
     ["current_projects", draft.current_projects.trim().length <= 600, "Keep your project description within 600 characters."],
+    ["networking_role", MATCHING_ROLE_OPTIONS.some((option) => option.value === draft.networking_role), "Choose how you’d like people to connect with you."],
+    ["work_arrangement", MATCHING_WORK_OPTIONS.some((option) => option.value === draft.work_arrangement), "Choose your work arrangement."],
+    ["open_to", MATCHING_OPEN_OPTIONS.some((option) => option.value === draft.open_to), "Choose the opportunities you’re open to."],
     ["image_path", hasPhoto, "Add a profile photo to finish your Hi5."],
     ["portfolio_url", validUrl(draft.portfolio_url), "Enter a full portfolio URL starting with https:// or http://."],
     ["linkedin_url", validUrl(draft.linkedin_url), "Enter a full LinkedIn URL starting with https:// or http://."],
@@ -143,5 +158,7 @@ export function profileSectionPayload(draft: ProfileDraft, imagePath: string, se
 }
 
 export function profilePayload(draft: ProfileDraft, imagePath: string): Record<string, unknown> {
-  return Object.assign({}, ...PROFILE_SECTIONS.map((section) => profileSectionPayload(draft, imagePath, section)));
+  return Object.assign({}, ...PROFILE_SECTIONS.map((section) => profileSectionPayload(draft, imagePath, section)), {
+    networking_role: draft.networking_role, work_arrangement: draft.work_arrangement, open_to: draft.open_to,
+  });
 }

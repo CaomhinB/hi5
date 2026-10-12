@@ -18,9 +18,11 @@ import {
 } from "./onboardingApi";
 import type { OnboardingContext } from "./onboardingApi";
 import { saveProfileSection } from "../home/profile/profileApi";
+import { MATCHING_ROLE_OPTIONS, MATCHING_WORK_OPTIONS, MATCHING_OPEN_OPTIONS } from "../home/profile/profileMatchingModel";
 import styles from "./Onboarding.module.css";
 
-type TextField = Exclude<keyof ProfileDraft, "industries" | "skills" | "interests">;
+type NetworkingField = "networking_role" | "work_arrangement" | "open_to";
+type TextField = Exclude<keyof ProfileDraft, "industries" | "skills" | "interests" | NetworkingField>;
 
 interface OnboardingFlowProps {
   editSection?: ProfileSection;
@@ -126,7 +128,7 @@ export function OnboardingFlow({ editSection, initialContext, onSaved }: Onboard
     setIssue(next); setError(""); setStep(Math.max(0, fieldStep(next.field)));
     requestAnimationFrame(() => {
       const root = document.getElementById(`onboarding-${next.field}-field`);
-      const control = Array.from(root?.querySelectorAll<HTMLElement>("input, textarea, button") ?? [])
+      const control = Array.from(root?.querySelectorAll<HTMLElement>("input, textarea, select, button") ?? [])
         .find((element) => element.getClientRects().length > 0);
       control?.focus({ preventScroll: true });
       root?.scrollIntoView({ block: "nearest", behavior: "instant" });
@@ -173,7 +175,7 @@ export function OnboardingFlow({ editSection, initialContext, onSaved }: Onboard
         const saved = await saveProfileSection(editSection, draft, imagePath, context, controller.signal);
         if (!mounted.current || controller.signal.aborted) return;
         onSaved?.(saved);
-      } else await saveOnboardingProfile(draft, imagePath, context.authUserId, controller.signal);
+      } else await saveOnboardingProfile(draft, imagePath, context, controller.signal);
       if (!mounted.current) return;
       if (isEditing) router.push("/home/profile");
       else router.replace("/home");
@@ -214,6 +216,21 @@ export function OnboardingFlow({ editSection, initialContext, onSaved }: Onboard
         searchInside={field === "industries"} allowCustom={field !== "industries"} matchAnyWord={field !== "industries"}
         maxSelections={field === "industries" ? 3 : undefined} portalRootId="onboarding-popovers" />
       <p className={styles.hint}>{field === "industries" ? "Choose 1–3 options from the list." : "Choose suggestions, or type and select + Add to use your own words."}</p>
+    </div>;
+  }
+
+  function networkingQuestion<K extends NetworkingField>(field: K, title: string,
+    options: readonly { value: ProfileDraft[K]; label: string }[], hint: string) {
+    const hintId = `onboarding-${field}-hint`;
+    return <div id={`onboarding-${field}-field`} className={styles.question}>
+      <label htmlFor={`profile-${field}`}>{title}</label>
+      <select id={`profile-${field}`} name={field} value={draft?.[field] ?? options[0].value} required
+        aria-invalid={issue?.field === field || undefined}
+        aria-describedby={`${hintId}${issue?.field === field ? " onboarding-validation-error" : ""}`}
+        onChange={(event) => update(field, event.target.value as ProfileDraft[K])}>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <p id={hintId} className={styles.hint}>{hint}</p>
     </div>;
   }
 
@@ -261,6 +278,15 @@ export function OnboardingFlow({ editSection, initialContext, onSaved }: Onboard
                 {tagQuestion("skills", "What are your skills?", SKILL_OPTIONS)}
                 {tagQuestion("interests", "What are you interested in?", INTEREST_OPTIONS, true)}
                 {longQuestion("current_projects", "What are you working on?", "e.g. Building a SaaS product, exploring an idea, or growing a team.", true)}
+                {!isEditing && <div className={styles.networkingQuestions}>
+                  <h2>How would you like to connect?</h2>
+                  {networkingQuestion("networking_role", "Connect with me as", MATCHING_ROLE_OPTIONS,
+                    "Your networking role appears on your profile and helps people find you.")}
+                  {networkingQuestion("work_arrangement", "Which work arrangement suits you?", MATCHING_WORK_OPTIONS,
+                    "Choose Any if you’re happy with different work arrangements.")}
+                  {networkingQuestion("open_to", "What opportunities are you open to?", MATCHING_OPEN_OPTIONS,
+                    "Choose Any if you’re open to different opportunities.")}
+                </div>}
               </>}
               {step === 3 && <>
                 <div id="onboarding-image_path-field" className={styles.question}>

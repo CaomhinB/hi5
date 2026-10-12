@@ -45,7 +45,16 @@ function ChoicePills<T extends string>({ labelledBy, options, value, onChange, c
   );
 }
 
-export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
+export function FiltersPanel({ returnTo, mode = "discover", initialFilters, onApply,
+  saving = false, saveError, city }: {
+  returnTo: string | null;
+  mode?: "discover" | "hi5";
+  initialFilters?: Filters;
+  onApply?: (filters: Filters) => Promise<void>;
+  saving?: boolean;
+  saveError?: string | null;
+  city?: string | null;
+}) {
   const router = useRouter();
   const stored = useSyncExternalStore(subscribeToFilters, getFiltersSnapshot, serverSnapshot);
   const savedFilters = useMemo(() => parseStoredFilters(stored), [stored]);
@@ -54,7 +63,7 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
   const [error, setError] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const filters = draft ?? savedFilters;
+  const filters = draft ?? initialFilters ?? savedFilters;
   const distanceIndex = DISTANCE_OPTIONS.findIndex((option) => option.value === filters.location);
   const distance = DISTANCE_OPTIONS[distanceIndex];
 
@@ -112,16 +121,19 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
   }
 
   function returnToApp() {
+    if (saving) return;
     const previousPage = getFilterReturnPath(document.referrer, window.location.origin);
     router.replace(returnTo ?? previousPage ?? "/home/discover");
   }
 
-  function apply() {
+  async function apply() {
+    if (saving) return;
     try {
-      saveFilters(filters);
+      if (onApply) await onApply(filters);
+      else saveFilters(filters);
       returnToApp();
-    } catch {
-      setError("Your filters couldn’t be saved. Please allow browser storage and try again.");
+    } catch (cause) {
+      setError(onApply && cause instanceof Error ? cause.message : "Your filters couldn’t be saved. Please allow browser storage and try again.");
     }
   }
 
@@ -158,13 +170,15 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
           <div className={styles.titleRow}>
             <h1 id="filters-title">Filters</h1>
             <button ref={closeRef} type="button" className={styles.closeButton}
-              aria-label="Close filters" onClick={returnToApp}><FilterIcon name="close" size={19} /></button>
+              aria-label="Close filters" disabled={saving} onClick={returnToApp}><FilterIcon name="close" size={19} /></button>
           </div>
           <p id="filters-description" className={styles.srOnly}>Choose who you want to meet. Apply Filters to save your choices.</p>
-          <p className={styles.selectionHelp}>Industry, Role / Profession, Experience and Skills filter Discovery. Other choices are saved as demo preferences.</p>
+          <p className={styles.selectionHelp}>{mode === "hi5"
+            ? "These preferences apply to your next five-day Hi5. Industries and skills boost ranking; we broaden other preferences when needed to find five people."
+            : "Industry, Role / Profession, Experience and Skills filter Discovery. Other choices are saved as demo preferences."}</p>
         </header>
 
-        <div key={resetCount} className={styles.sections} data-filter-scroll>
+        <div key={resetCount} className={styles.sections} data-filter-scroll inert={saving}>
           <FilterSection id="looking-for-heading" icon="sparkles" title="I'm looking for…">
             <div className={styles.lookingGrid} role="group" aria-labelledby="looking-for-heading">
               {LOOKING_FOR_OPTIONS.map((option) => (
@@ -176,7 +190,10 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
             </div>
           </FilterSection>
 
-          <FilterSection id="location-heading" icon="location" title="Location" detail={distance.description}>
+          {mode === "hi5" ? <FilterSection id="location-heading" icon="location" title="City compatibility">
+            <p className={styles.selectionHelp}>{city ? `People in ${city} get a same-city ranking boost.`
+              : "Add your city in My profile to include same-city compatibility."}</p>
+          </FilterSection> : <FilterSection id="location-heading" icon="location" title="Location" detail={distance.description}>
             <div className={styles.distanceControl} style={{ "--distance-progress": `${distanceIndex * 25}%` } as CSSProperties}>
               <input className={styles.distanceSlider} type="range" min={0} max={4} step={1}
                 value={distanceIndex} aria-labelledby="location-heading" aria-valuetext={distance.description}
@@ -188,7 +205,7 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
                 ))}
               </div>
             </div>
-          </FilterSection>
+          </FilterSection>}
 
           <FilterSection id="work-heading" icon="house" title="Work arrangement">
             <ChoicePills labelledBy="work-heading" options={WORK_ARRANGEMENTS} value={filters.workArrangement}
@@ -225,18 +242,18 @@ export function FiltersPanel({ returnTo }: { returnTo: string | null }) {
         </div>
 
         <footer className={styles.footer}>
-          {error && <p className={styles.saveError} role="alert">{error}</p>}
+          {(error || saveError) && <p className={styles.saveError} role="alert">{error || saveError}</p>}
           <div className={styles.footerActions}>
-            <button type="button" className={styles.resetButton} onClick={() => {
+            <button type="button" className={styles.resetButton} disabled={saving} onClick={() => {
               setDraft(createDefaultFilters());
               setResetCount((count) => count + 1);
               setError("");
             }}><FilterIcon name="reset" size={18} />Reset</button>
-            <button type="button" className={styles.applyButton} onClick={apply}>Apply Filters</button>
+            <button type="button" className={styles.applyButton} disabled={saving} onClick={() => void apply()}>{saving ? "Saving…" : mode === "hi5" ? "Save for next Hi5" : "Apply Filters"}</button>
           </div>
         </footer>
       </div>
-      <div id="filters-popovers" className={styles.popoverRoot} />
+      <div id="filters-popovers" className={styles.popoverRoot} inert={saving} />
     </div>
   );
 }

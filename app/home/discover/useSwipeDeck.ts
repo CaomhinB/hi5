@@ -180,7 +180,7 @@ export function useSwipeDeck<Result>(
   return {
     dragX, dragging, exitDirection, passFeedback, hiFeedback, isSaving, error,
     busy: exitDirection !== null || dragging || isSaving,
-    dismiss, finishDismissal,
+    dismiss, finishDismissal, clearError: () => setError(null),
     pointerHandlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onLostPointerCapture: onPointerCancel },
   };
 }

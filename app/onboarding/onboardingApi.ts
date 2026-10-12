@@ -4,6 +4,7 @@ import { getSupabaseBrowserClient } from "../lib/supabase/browser";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, PROFILE_IMAGE_BUCKET, profilePayload } from "./profileModel";
 import type { ProfileDraft, ProfileRecord } from "./profileModel";
 import { notifyProfileChanged } from "../lib/supabase/profileEvents";
+import { saveMatchingProfile } from "../home/profile/profileMatchingApi";
 
 export interface OnboardingContext {
   authUserId: string;
@@ -68,12 +69,19 @@ export async function uploadProfilePhoto(file: File, authUserId: string): Promis
   return path;
 }
 
-export async function saveOnboardingProfile(draft: ProfileDraft, imagePath: string, authUserId: string, signal: AbortSignal): Promise<void> {
+export async function saveOnboardingProfile(draft: ProfileDraft, imagePath: string, context: OnboardingContext, signal: AbortSignal): Promise<void> {
+  // Signup already creates the owner profile row. Save these choices before the
+  // core RPC completes onboarding, so the first Hi5 uses the chosen attributes.
+  // The installed core RPC does not update these columns; owner RLS handles them.
+  // Publish one profile-change event only after the full save succeeds.
+  await saveMatchingProfile(context, {
+    networking_role: draft.networking_role, work_arrangement: draft.work_arrangement, open_to: draft.open_to,
+  }, signal, { notify: false });
   const { data, error } = await getSupabaseBrowserClient().rpc("save_my_onboarding_profile", {
-    expected_auth_user_id: authUserId, profile_input: profilePayload(draft, imagePath),
+    expected_auth_user_id: context.authUserId, profile_input: profilePayload(draft, imagePath),
   }).abortSignal(signal);
   signal.throwIfAborted();
   if (error) throw apiError(error.code, error.message);
   if (data?.success !== true) throw new OnboardingError("We couldn’t confirm that your profile was saved. Please try again.");
-  notifyProfileChanged(authUserId);
+  notifyProfileChanged(context.authUserId);
 }
