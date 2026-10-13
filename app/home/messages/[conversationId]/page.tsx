@@ -1,10 +1,9 @@
-import { PlaceholderPage } from "../../../components/layout/PlaceholderPage";
+import type { Metadata } from "next";
+import { MessagesExperience } from "../MessagesExperience";
 
-export default function ConversationPage() {
-  return (
-    <PlaceholderPage
-      title="Conversation"
-      description="Your conversation will appear here."
-    />
-  );
+export const metadata: Metadata = { title: "Conversation | Hi5" };
+
+export default async function ConversationPage({ params }: { params: Promise<{ conversationId: string }> }) {
+  const { conversationId } = await params;
+  return <MessagesExperience conversationId={conversationId} />;
 }

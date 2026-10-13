@@ -1,10 +1,8 @@
-import { PlaceholderPage } from "../../components/layout/PlaceholderPage";
+import type { Metadata } from "next";
+import { MessagesExperience } from "./MessagesExperience";
+
+export const metadata: Metadata = { title: "Messages | Hi5" };
 
 export default function MessagesPage() {
-  return (
-    <PlaceholderPage
-      title="Messages"
-      description="Your conversations with people who said Hi back will appear here."
-    />
-  );
+  return <MessagesExperience />;
 }
