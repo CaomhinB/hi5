@@ -8,7 +8,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Hi5 | Meet 5 people worth saying Hi to",
+  title: { default: "Hi5", template: "Hi5" },
   description:
     "Hi5 is a professional matchmaking app. Meet 5 relevant people a day. Conversations only start when both people say Hi.",
 };

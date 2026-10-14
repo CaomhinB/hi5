@@ -84,6 +84,10 @@ export function Navbar() {
                 {l.label}
               </a>
             ))}
+            <button type="button" className="btn btn-glass" aria-haspopup="dialog"
+              onClick={() => { setMenuOpen(false); setLoginOpen(true); }}>
+              Log in
+            </button>
             <a href="/signup" className="btn btn-primary" onClick={() => setMenuOpen(false)}>
               Sign up
             </a>

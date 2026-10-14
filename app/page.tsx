@@ -116,7 +116,7 @@ export default function Home() {
             <Reveal delay={320} className="hero-stats">
               <div className="glass">
                 <strong>5</strong>
-                <span>people a day</span>
+                <span>people in 5 days</span>
               </div>
               <div className="glass">
                 <strong>2-way</strong>
