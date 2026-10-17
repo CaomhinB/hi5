@@ -1,8 +1,9 @@
 # Hi5 page
 
 `/home/hi5` now uses the Supabase routines installed in setup Stages 1-5.
-Personal recommendations need a signed-in user with a complete profile. Guests
-can still open the page and go to log in; other home pages remain accessible.
+Personal recommendations need a signed-in user with a complete profile. All
+home routes now require login; guests redirect to the landing page. See
+`app/lib/supabase/AUTH.md` for the shared route protection.
 No additional SQL installation, AI API or dedicated backend service is required.
 
 ## Behaviour

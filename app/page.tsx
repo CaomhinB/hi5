@@ -10,7 +10,9 @@ import { FindTabs } from "./components/landing/FindTabs";
 import { MatchFit } from "./components/landing/MatchFit";
 import { HowItWorks } from "./components/landing/HowItWorks";
 import { MutualFlow } from "./components/landing/MutualFlow";
+import { DemoVideo } from "./components/landing/DemoVideo";
 import "./landing.css";
+import { getVerifiedUser } from "./lib/supabase/server";
 
 const marquee = [
   "Co-founders",
@@ -75,7 +77,8 @@ const benefits = [
   "One place to find collaborators, co-founders, mentors, researchers, and partners",
 ];
 
-export default function Home() {
+export default async function Home() {
+  const user = await getVerifiedUser();
   return (
     <>
       <div className="bg-orbs" aria-hidden="true">
@@ -84,7 +87,7 @@ export default function Home() {
         <span className="orb orb-3" />
       </div>
       <MouseGlow />
-      <Navbar />
+      <Navbar initialSignedIn={!!user} />
 
       <main id="top" className="landing">
         {/* ---------- Hero ---------- */}
@@ -106,8 +109,8 @@ export default function Home() {
               </p>
             </Reveal>
             <Reveal delay={240} className="hero-ctas">
-              <a href="/signup" className="btn btn-primary btn-lg">
-                Get started
+              <a href={user ? "/home" : "/signup"} className="btn btn-primary btn-lg">
+                {user ? "Home →" : "Get started"}
               </a>
               <a href="#try" className="btn btn-glass btn-lg">
                 <span aria-hidden="true">▶</span> Try it now
@@ -172,6 +175,11 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* ---------- Watch demo ---------- */}
+        <Reveal className="container-page">
+          <DemoVideo />
+        </Reveal>
 
         {/* ---------- Without the noise ---------- */}
         <section id="why" className="section container-page">
@@ -444,7 +452,7 @@ export default function Home() {
             </h2>
             <p className="lead">Meet 5 people worth saying Hi to.</p>
             <div className="cta-buttons">
-              <a href="/signup" className="btn btn-primary btn-lg">Get started</a>
+              <a href={user ? "/home" : "/signup"} className="btn btn-primary btn-lg">{user ? "Home →" : "Get started"}</a>
               <a href="#try" className="btn btn-glass btn-lg">
                 Try the demo again
               </a>

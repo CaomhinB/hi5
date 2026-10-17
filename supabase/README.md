@@ -55,11 +55,27 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<the project's public anon key>
 Use the public anon key from the Supabase API settings, never a secret/service-role
 key. `.env.local` is ignored by Git. Restart the development server after editing it.
 
-In Authentication → URL Configuration, set the appropriate Site URL and add
-`http://localhost:3000/signup/confirmed` and the deployed equivalent to the redirect
-allowlist. The default confirmation email must retain its `ConfirmationURL` link.
-The browser Supabase client consumes the confirmation link's implicit-flow tokens
-on `/signup/confirmed`, then takes a confirmed session to `/home`.
+In the hosted project's **Authentication → URL Configuration**, set:
+
+- **Site URL:** `https://www.hi5project.co.uk`
+- **Redirect URLs:** add `https://www.hi5project.co.uk/signup/confirmed`.
+- Keep `http://localhost:3000/signup/confirmed` as an additional redirect for local
+  development, rather than the production Site URL. Preserve other valid entries.
+
+The default confirmation email must retain its `{{ .ConfirmationURL }}` link;
+remove any hardcoded localhost link from a customized template. Current signup
+requests `/signup/confirmed` on the website where registration took place. That
+page establishes the cookie session and opens **`/onboarding`**. It supports
+current PKCE links and previously sent hash-token links. If automatic sign-in
+cannot complete, its login button also leads to onboarding after authentication.
+Completed profiles continue to `/home`; new profiles see the onboarding form.
+
+These settings must be changed in the hosted Supabase project. The local
+`supabase/config.toml` configures local development and does not update hosted
+Auth settings. Previously sent emails can retain an old redirect. After correcting
+the settings, send a fresh confirmation link, or log in on the production site if
+the previous click already confirmed the email. The public browser key cannot
+administer these Auth settings.
 
 ## Check the flow
 
@@ -72,12 +88,12 @@ Run `npm run dev`, then open `/signup`:
 5. With the SQL applied, submit once with a new test email. Check Auth and both
    existing tables: the IDs join correctly and arrays contain the displayed labels.
 6. With email confirmation enabled, verify the check-email screen and follow the
-   emailed link. With confirmation disabled, signup goes directly to `/home`.
+   emailed link. With confirmation disabled, signup goes directly to `/onboarding`.
 7. Test Skip for now: it creates the account with `industries = []`.
 8. Test duplicate signup, network failures and invalid/expired confirmation links.
 9. As separate authenticated test accounts, verify each can read profiles but
    cannot update the other's profile, user row or ownership IDs. Anonymous requests
    must not read or write these tables.
 
-The current `/home` screens remain the existing demo; signup does not add route
-protection, real discovery queries, or a real login flow.
+Home routes now require login. The shared route guard and session behaviour are
+documented in `app/lib/supabase/AUTH.md`.

@@ -1,0 +1,36 @@
+.profile {
+  display: flex;
+  align-items: center;
+}
+
+.profile > a {
+  width: 38px;
+  height: 38px;
+}
+
+/* Keep Home visible even where the original signup CTA is hidden. */
+.profile + .homeLink {
+  display: inline-flex;
+}
+
+@media (max-width: 560px) {
+  .signedInBar:global(.nav-bar) {
+    gap: 8px;
+    padding-inline: 12px 10px;
+  }
+
+  .signedInBar :global(.nav-actions) {
+    gap: 6px;
+  }
+
+  .profile + .homeLink {
+    min-height: 36px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+
+  .profile > a {
+    width: 34px;
+    height: 34px;
+  }
+}
